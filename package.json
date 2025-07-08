@@ -1,0 +1,14 @@
+{
+    "name": "my-strudel-flutes",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "start": "serve ."
+    },
+    "dependencies": {
+        "@strudel/web": "^1.2.3"
+    },
+    "devDependencies": {
+        "serve": "^14.2.0"
+    }
+}
