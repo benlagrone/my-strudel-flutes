@@ -1,0 +1,17 @@
+[Unit]
+Description=My Strudel Flutes
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/my-strudel-flutes
+Environment=HOST=0.0.0.0
+Environment=PORT=8008
+ExecStart=/usr/bin/env node /opt/my-strudel-flutes/server.mjs
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

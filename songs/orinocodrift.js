@@ -1,50 +1,48 @@
-import { strudel } from "@strudel/web"
-const s = strudel()
+setcps(0.46)
 
-s.setcps(0.5) // slow flowing pace
+stack(
+  n("<0 4 5 7>")
+    .scale("C4:major")
+    .s("sawtooth")
+    .lpf(1000)
+    .lpq(3)
+    .attack(0.02)
+    .decay(0.58)
+    .sustain(0)
+    .release(0.08)
+    .room(0.36)
+    .gain(0.2)
+    .slow(2),
 
-// Gentle major 7th pad progression
-const chords = s.chord("<Cmaj7 Am9 Fmaj7 G6>/4").dict("ireal")
-
-s.stack(
-  // 🕊️ Pad layer: the misty breeze
-  chords.offset(-1).voicing()
-    .s("gm_pad_choir")
-    .room(0.7)
-    .delay(0.3)
-    .gain(0.5)
-    .lpf(1000),
-
-  // ✨ Bell sparkle
-  s.n("0 ~ 4 ~ 7 ~").set(chords)
-    .mode("major")
-    .voicing()
-    .s("gm_music_box")
-    .room(0.8)
+  n("[0 2 4 ~] ~ [5 7]")
+    .scale("C5:lydian")
+    .s("triangle")
+    .lpf(1400)
+    .attack(0.01)
+    .decay(0.24)
+    .sustain(0)
+    .release(0.06)
+    .room(0.4)
     .delay("<0 .125>")
-    .slow(3)
-    .gain(0.3),
+    .gain(0.24)
+    .slow(2),
 
-  // 🌊 Ambient bottle flute echoes
-  s.n("<0 2 5>").set(chords)
-    .mode("lydian")
-    .voicing()
-    .s("gm_bottle_blow")
-    .room(0.9)
-    .delay("<.25 .5>")
-    .gain(0.4)
-    .slow(4)
-    .rarely(s.ply?.("2") ?? (() => {})),
+  n("0 ~ 0 2")
+    .scale("C2:major")
+    .s("sine")
+    .lpf(700)
+    .attack(0.01)
+    .decay(0.26)
+    .sustain(0)
+    .release(0.06)
+    .gain(0.12)
+    .slow(2),
 
-  // 🫧 Subtle rhythmic bed
-  s.stack(
-    s("bd").struct("x ~ x").gain(0.3),
-    s("hh").struct("~ x ~ x").gain(0.2),
-    s("rd:<2>*2").mask("1*4").gain(0.15)
+  stack(
+    s("bd").struct("x ~ ~ x").gain(0.2),
+    s("hh").struct("~ x ~ x").gain(0.08)
   )
-  .bank("crate")
-  .delay(0.05)
+    .bank("crate")
 )
-.chunk(4, s.fast?.(2) ?? (() => {}))
-.reverb(0.6)
-.late("[0 .01]*2")
+.room(0.3)
+.rsize(2.2)

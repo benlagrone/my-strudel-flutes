@@ -1,11 +1,611 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>The Flutes of Tawantinsuyu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jester</title>
+  <style>
+    :root {
+      --bg: #f3ede2;
+      --panel: rgba(255, 252, 245, 0.88);
+      --ink: #1f1b18;
+      --muted: #5f564f;
+      --accent: #1e6b5c;
+      --accent-strong: #12483f;
+      --border: rgba(31, 27, 24, 0.12);
+      --error: #8b2e26;
+      --shadow: 0 24px 60px rgba(52, 38, 17, 0.14);
+      --background: #181614;
+      --foreground: #f7f2ea;
+      --lineBackground: #181614;
+      --lineHighlight: #26211d;
+      --selection: rgba(30, 107, 92, 0.32);
+      --selectionMatch: rgba(30, 107, 92, 0.22);
+      --caret: #f7f2ea;
+      --gutterBackground: #181614;
+      --gutterForeground: rgba(247, 242, 234, 0.46);
+      --gutterActiveForeground: #f7f2ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(205, 155, 92, 0.22), transparent 32%),
+        radial-gradient(circle at top right, rgba(30, 107, 92, 0.18), transparent 28%),
+        linear-gradient(180deg, #f5efe4 0%, #efe7d7 100%);
+    }
+
+    main {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 32px auto;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      margin-top: 24px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255, 249, 240, 0.82);
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) repeat(6, auto);
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    select,
+    button,
+    .editor-shell {
+      font: inherit;
+    }
+
+    select,
+    button {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    select {
+      background: #fffaf3;
+      color: var(--ink);
+    }
+
+    button {
+      cursor: pointer;
+      color: #fffaf3;
+      background: var(--accent);
+      transition: transform 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      color: rgba(31, 27, 24, 0.45);
+      background: #e9e0d2;
+      transform: none;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: #efe7d7;
+    }
+
+    button.secondary:hover {
+      background: #e5dbc7;
+    }
+
+    #status {
+      text-align: right;
+      color: var(--muted);
+      font-size: 0.95rem;
+      min-width: 220px;
+      padding-top: 6px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.2fr) repeat(3, auto);
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .inspector {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h2 {
+      margin: 4px 0 8px;
+      font-size: 1.35rem;
+      line-height: 1.05;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      font-size: 0.88rem;
+      line-height: 1;
+    }
+
+    .chip.palette {
+      background: rgba(30, 107, 92, 0.08);
+    }
+
+    .chip.muted {
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .editor-shell {
+      width: 100%;
+      min-height: 58vh;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #181614;
+      color: #f7f2ea;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .editor-shell .cm-editor {
+      min-height: 58vh;
+      background: transparent;
+    }
+
+    .editor-shell .cm-scroller {
+      min-height: 58vh;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+
+    .editor-shell .cm-content,
+    .editor-shell .cm-gutters {
+      padding-top: 18px;
+      padding-bottom: 18px;
+    }
+
+    .editor-shell .cm-content {
+      padding-left: 0;
+    }
+
+    .editor-shell .cm-line {
+      padding-left: 0;
+    }
+
+    .editor-shell .cm-content span[style*="outline: solid 2px"] {
+      border-radius: 4px;
+      background: rgba(30, 107, 92, 0.28);
+      box-shadow: 0 0 0 1px rgba(247, 242, 234, 0.18);
+    }
+
+    .editor-shell .cm-gutters {
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .editor-shell .cm-focused {
+      outline: none;
+    }
+
+    #error {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(139, 46, 38, 0.24);
+      background: rgba(139, 46, 38, 0.08);
+      color: var(--error);
+      white-space: pre-wrap;
+    }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+
+    .chat-shell {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255, 249, 240, 0.82);
+      position: sticky;
+      top: 24px;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.92fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .editor-pane {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .chat-title {
+      margin: 0;
+      font-size: 1.15rem;
+      line-height: 1.1;
+    }
+
+    .chat-status {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    .chat-messages {
+      display: grid;
+      gap: 12px;
+      max-height: 38vh;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .chat-message {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .chat-message.user {
+      background: rgba(30, 107, 92, 0.1);
+    }
+
+    .chat-message.assistant {
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .chat-role {
+      margin-bottom: 6px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .chat-content {
+      color: var(--ink);
+      white-space: pre-wrap;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.93rem;
+      line-height: 1.55;
+    }
+
+    .chat-sources,
+    .chat-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(30, 107, 92, 0.08);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.87rem;
+    }
+
+    .source-link:hover {
+      background: rgba(30, 107, 92, 0.16);
+    }
+
+    .chat-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .chat-config-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chat-meta {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .chat-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toggle {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .toggle input {
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .chat-input {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #fffaf3;
+      color: var(--ink);
+      font: inherit;
+      line-height: 1.5;
+    }
+
+    .chat-actions-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chat-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        width: calc(100vw - 20px);
+        margin: 10px auto;
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .hero,
+      .inspector {
+        grid-template-columns: 1fr;
+      }
+
+      #status {
+        min-width: 0;
+        text-align: left;
+      }
+
+      .control-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .field {
+        grid-column: 1 / -1;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .editor-shell,
+      .editor-shell .cm-editor,
+      .editor-shell .cm-scroller {
+        min-height: 52vh;
+      }
+
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-shell {
+        position: static;
+      }
+
+      .chat-header,
+      .chat-actions-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .chat-config-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>The Flutes of Tawantinsuyu</h1>
-  <script type="module" src="main.js"></script>
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Jester</h1>
+        <p>Build a sketch, save local versions in the browser, import or export code, and revise the current song live in chat. The first Play click also unlocks browser audio.</p>
+      </div>
+      <div id="status" aria-live="polite">Loading...</div>
+    </div>
+
+    <section class="panel">
+      <div class="control-grid">
+        <label class="field" for="sketch-select">
+          Sketch Library
+          <select id="sketch-select"></select>
+        </label>
+        <button class="secondary" id="reload-sketch" type="button">Reload Built-in</button>
+        <button class="secondary" id="save-sketch" type="button">Save</button>
+        <button class="secondary" id="save-copy" type="button">Save Copy</button>
+        <button class="secondary" id="export-sketch" type="button">Export</button>
+        <button class="secondary" id="import-sketch" type="button">Import</button>
+        <button class="secondary" id="delete-sketch" type="button">Delete</button>
+      </div>
+
+      <div class="button-row">
+        <label class="field" for="preset-select">
+          Preset Snippet
+          <select id="preset-select"></select>
+        </label>
+        <button class="secondary" id="insert-preset" type="button">Insert Preset</button>
+        <button id="play-song" type="button">Play</button>
+        <button class="secondary" id="stop-song" type="button">Stop</button>
+      </div>
+
+      <div class="inspector">
+        <div>
+          <div class="eyebrow">Current Sketch</div>
+          <h2 id="sketch-title">Loading...</h2>
+          <p id="sketch-description">Preparing the sketch library.</p>
+          <div class="chips" id="sketch-meta"></div>
+        </div>
+        <div>
+          <div class="eyebrow">Palette</div>
+          <div class="chips" id="palette-tags"></div>
+        </div>
+      </div>
+    </section>
+
+    <input id="import-file" type="file" accept=".js,.txt,text/javascript" hidden>
+    <section class="workspace-grid">
+      <div class="editor-pane">
+        <div id="code" class="editor-shell" aria-label="Strudel code editor"></div>
+        <pre id="error" hidden></pre>
+        <p class="hint">Shortcuts: <code>Cmd/Ctrl + Enter</code> plays, <code>Cmd/Ctrl + S</code> saves, and <code>Esc</code> stops. Local saves stay in this browser until you export or delete them.</p>
+      </div>
+      <section class="chat-shell" aria-labelledby="chat-title">
+        <div class="chat-header">
+          <div>
+            <div class="eyebrow">Jester</div>
+            <h2 class="chat-title" id="chat-title">Live Edit</h2>
+          </div>
+          <div class="chat-status" id="chat-status">Loading local docs…</div>
+        </div>
+        <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+        <form class="chat-form" id="chat-form">
+          <label class="field" for="chat-input">
+            Ask about the current song, or ask for a new full sketch
+            <textarea class="chat-input" id="chat-input" placeholder="Keep the current bass and drums, but make the melody darker, longer, and more dramatic."></textarea>
+          </label>
+          <div class="chat-config-row">
+            <label class="field" for="chat-provider-select">
+              Provider
+              <select id="chat-provider-select"></select>
+            </label>
+            <label class="field" for="chat-model-select">
+              Model
+              <select id="chat-model-select"></select>
+            </label>
+          </div>
+          <div class="chat-actions-row">
+            <div class="chat-meta">
+              <div class="chat-note" id="chat-note">Answers are grounded in the local Strudel docs in this repo.</div>
+              <div class="chat-toggles">
+                <label class="toggle" for="chat-auto-apply">
+                  <input id="chat-auto-apply" type="checkbox" checked>
+                  Live apply song edits
+                </label>
+                <label class="toggle" for="chat-auto-play">
+                  <input id="chat-auto-play" type="checkbox">
+                  Auto play after apply
+                </label>
+              </div>
+            </div>
+            <div class="chat-actions">
+              <button class="secondary" id="clear-chat" type="button">Clear Chat</button>
+              <button id="send-chat" type="submit">Ask</button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

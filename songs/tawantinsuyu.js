@@ -1,52 +1,49 @@
-const s = strudel()
-s.setcps(0.55)
+setcps(0.5)
 
-// Chord progression
-const chords = s.chord("<Am7 Dm9 G7 Cmaj7>/4").dict("ireal")
-
-s.stack(
-  // Pads
-  chords.offset(-1).voicing()
-    .s("gm_pad_poly")
-    .room(0.6)
-    .delay(0.2)
-    .gain(0.6),
-
-  // Flute melody
-  s.n("[0 ~ 2 4] ~ <5 7 9>")
-    .set(chords)
-    .mode("dorian")
-    .voicing()
-    .s("gm_pan_flute")
-    .room(0.7)
-    .delay("<0 .125 .25>")
-    .gain(0.7)
-    .rarely(s.ply ? s.ply("2") : (() => {}))
+stack(
+  n("<0 3 5 6>")
+    .scale("A3:minor")
+    .s("sawtooth")
+    .lpf(900)
+    .lpq(3)
+    .attack(0.02)
+    .decay(0.72)
+    .sustain(0)
+    .release(0.08)
+    .room(0.36)
+    .gain(0.28)
     .slow(2),
 
-  // Subtle percussion
-  s.stack(
-    s("bd").struct("<[x~ x] x>").gain(0.5),
-    s("rim:<2 3>").mask("<0 1 1 0>/16").gain(0.3),
-    s("shaker:<1 2>").mask("1*4").gain(0.25)
-  )
-  .bank("crate")
-  .delay(0.05),
+  n("[0 2 4 ~] ~ <5 7>")
+    .scale("A4:dorian")
+    .s("triangle")
+    .lpf(1500)
+    .attack(0.01)
+    .decay(0.26)
+    .sustain(0)
+    .release(0.06)
+    .room(0.4)
+    .delay("<0 .125>")
+    .gain(0.3)
+    .slow(2),
 
-  // Flute echoes
-  s.n("<0!2 3 5>")
-    .set(chords)
-    .mode("aeolian")
-    .voicing()
-    .s("gm_pan_flute")
-    .slow(3)
-    .room(0.6)
-    .lpf(800)
-    .delay(0.3)
-    .gain(0.5)
+  stack(
+    s("bd").struct("x ~ ~ x").gain(0.26),
+    s("hh").struct("~ x ~ x").gain(0.1)
+  )
+    .bank("crate")
+    .delay(0.04),
+
+  n("~ <7 9> ~ <11>")
+    .scale("C6:major")
+    .s("sine")
+    .attack(0.01)
+    .decay(0.14)
+    .sustain(0)
+    .release(0.04)
+    .room(0.42)
+    .gain(0.14)
+    .slow(4)
 )
-.segment(4)
-.chunk(4, s.fast ? s.fast(2) : (() => {}))
-.fm(s.sine ? s.sine.range(2,8).slow(6) : (() => {}))
-.reverb(0.6)
-.late("[0 .01]*2")
+.room(0.3)
+.rsize(2.5)
