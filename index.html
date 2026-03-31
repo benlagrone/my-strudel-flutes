@@ -355,6 +355,17 @@
       line-height: 1.55;
     }
 
+    .chat-runtime-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(139, 46, 38, 0.2);
+      background: rgba(139, 46, 38, 0.08);
+      color: var(--error);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
     .chat-sources,
     .chat-actions {
       display: flex;
@@ -429,6 +440,97 @@
       color: var(--ink);
       font: inherit;
       line-height: 1.5;
+    }
+
+    .chat-guide-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .chat-guide-heading {
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .guide-button-row,
+    .prompt-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .guide-button,
+    .prompt-chip-button {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+    }
+
+    .prompt-chip-button {
+      color: var(--ink);
+      background: rgba(30, 107, 92, 0.08);
+    }
+
+    .prompt-chip-button:hover {
+      background: rgba(30, 107, 92, 0.16);
+    }
+
+    .suggestion-drawer {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.52);
+      overflow: hidden;
+    }
+
+    .suggestion-drawer summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      color: var(--ink);
+      list-style: none;
+      font-weight: 600;
+    }
+
+    .suggestion-drawer summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .suggestion-drawer[open] summary {
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .suggestion-note {
+      margin: 0;
+      padding: 12px 14px 0;
+      font-size: 0.9rem;
+    }
+
+    .suggestion-list {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px 14px;
+    }
+
+    .suggestion-card {
+      display: grid;
+      gap: 4px;
+      min-height: 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      text-align: left;
+    }
+
+    .suggestion-title {
+      font-weight: 600;
+    }
+
+    .suggestion-description {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.4;
     }
 
     .chat-actions-row {
@@ -573,6 +675,23 @@
             Ask about the current song, or ask for a new full sketch
             <textarea class="chat-input" id="chat-input" placeholder="Keep the current bass and drums, but make the melody darker, longer, and more dramatic."></textarea>
           </label>
+          <div class="chat-guide-group">
+            <div class="chat-guide-heading">One-click variations</div>
+            <div class="guide-button-row" id="chat-variation-buttons"></div>
+          </div>
+          <div class="chat-guide-group">
+            <div class="chat-guide-heading">Prompt chips</div>
+            <div class="prompt-chip-row" id="chat-prompt-chips"></div>
+          </div>
+          <div class="chat-guide-group">
+            <div class="chat-guide-heading">Style starts</div>
+            <div class="guide-button-row" id="chat-style-presets"></div>
+          </div>
+          <details class="suggestion-drawer">
+            <summary>Prompt suggestions for bigger song changes</summary>
+            <p class="suggestion-note">Load one into the input, tweak it if needed, then ask.</p>
+            <div class="suggestion-list" id="chat-prompt-suggestions"></div>
+          </details>
           <div class="chat-config-row">
             <label class="field" for="chat-provider-select">
               Provider

@@ -159,6 +159,95 @@ const PRESET_SNIPPETS = [
   },
 ];
 
+const VARIATION_ACTIONS = [
+  {
+    id: 'darker',
+    label: 'Darker',
+    prompt: 'Keep the current song structure and main layers, but make the song darker, warmer, and slightly more dramatic. Return a full revised sketch.',
+  },
+  {
+    id: 'calmer',
+    label: 'Calmer',
+    prompt: 'Keep the current song recognizable, but make it calmer, softer, and more spacious. Return a full revised sketch.',
+  },
+  {
+    id: 'rhythmic',
+    label: 'More Rhythmic',
+    prompt: 'Keep the current harmonic mood, but make the song more rhythmic and a little more propulsive without getting too busy. Return a full revised sketch.',
+  },
+  {
+    id: 'sparse',
+    label: 'More Sparse',
+    prompt: 'Keep the current mood and best musical ideas, but strip the song back so it feels more sparse and open. Return a full revised sketch.',
+  },
+];
+
+const PROMPT_CHIPS = [
+  {
+    id: 'less-busy',
+    label: 'Less busy',
+    seed: 'Keep the current song, but make it less busy.',
+    append: 'make it less busy',
+  },
+  {
+    id: 'warmer',
+    label: 'Warmer',
+    seed: 'Keep the current song, but make it warmer.',
+    append: 'make it warmer',
+  },
+  {
+    id: 'more-space',
+    label: 'More space',
+    seed: 'Keep the current song, but give it more space.',
+    append: 'give it more space',
+  },
+  {
+    id: 'longer-tails',
+    label: 'Longer tails',
+    seed: 'Keep the current song, but add longer reverb and delay tails.',
+    append: 'add longer reverb and delay tails',
+  },
+  {
+    id: 'soft-kick',
+    label: 'Soft kick',
+    seed: 'Keep the current song, but add a soft kick pulse.',
+    append: 'add a soft kick pulse',
+  },
+];
+
+const PROMPT_SUGGESTIONS = [
+  {
+    id: 'arrange-sections',
+    label: 'Arrange into sections',
+    description: 'Turn the current sketch into intro, lift, and outro without losing the original mood.',
+    prompt: 'Turn the current song into a clear intro, lift, and outro. Keep the same overall mood and palette, and return a full revised sketch.',
+  },
+  {
+    id: 'simplify-and-groove',
+    label: 'Simplify and groove',
+    description: 'Keep the core harmony, simplify the melody, and add a soft rhythmic pulse.',
+    prompt: 'Keep the current pad and harmony, simplify the melody, add a soft percussion pulse, and return a full revised sketch that stays playable and uncluttered.',
+  },
+  {
+    id: 'title-screen-loop',
+    label: 'Title-screen loop',
+    description: 'Reframe the current song as a game-ready loop with atmosphere and restraint.',
+    prompt: 'Rewrite the current song as a polished title-screen loop for a rainy game menu. Keep it atmospheric, restrained, and seamless, and return a full revised sketch.',
+  },
+  {
+    id: 'second-half-counterline',
+    label: 'Add a counterline',
+    description: 'Introduce a brighter counterline in the back half while keeping the lead intact.',
+    prompt: 'Keep the current lead and harmony, but add a brighter counterline in the second half of the loop. Keep it musical, not crowded, and return a full revised sketch.',
+  },
+  {
+    id: 'declutter-motion',
+    label: 'Declutter, then build',
+    description: 'Reduce clutter first, then add a little forward motion in the later bars.',
+    prompt: 'Keep the current harmony, remove clutter, and then add a gentle sense of motion in the later bars. Return a full revised sketch.',
+  },
+];
+
 const elements = {
   chatAutoApply: document.getElementById('chat-auto-apply'),
   chatAutoPlay: document.getElementById('chat-auto-play'),
@@ -167,8 +256,12 @@ const elements = {
   chatMessages: document.getElementById('chat-messages'),
   chatModelSelect: document.getElementById('chat-model-select'),
   chatNote: document.getElementById('chat-note'),
+  chatPromptChips: document.getElementById('chat-prompt-chips'),
+  chatPromptSuggestions: document.getElementById('chat-prompt-suggestions'),
   chatProviderSelect: document.getElementById('chat-provider-select'),
   chatStatus: document.getElementById('chat-status'),
+  chatStylePresets: document.getElementById('chat-style-presets'),
+  chatVariationButtons: document.getElementById('chat-variation-buttons'),
   clearChatButton: document.getElementById('clear-chat'),
   codeEditor: document.getElementById('code'),
   deleteButton: document.getElementById('delete-sketch'),
@@ -205,6 +298,7 @@ const state = {
   },
   current: null,
   dirty: false,
+  loadedCode: '',
   localSketches: loadLocalSketches(),
 };
 
@@ -212,12 +306,88 @@ let editorInstance = null;
 let audioReady = null;
 let modulesLoading = null;
 
+const LOCAL_PAD_UNSUPPORTED_RULES = [
+  {
+    pattern: /\bloadOrc\s*\(/u,
+    reason: 'This sketch uses `loadOrc()`, which depends on the Csound runtime and is not available in this local Jester pad.',
+  },
+  {
+    pattern: /\bcsound\s*\(/iu,
+    reason: 'This sketch uses Csound-specific helpers that are not available in this local Jester pad.',
+  },
+  {
+    pattern: /^\s*await\b/mu,
+    reason: 'This sketch depends on async setup code, which is not directly runnable in this local editor.',
+  },
+  {
+    pattern: /^\s*import\s.+$/mu,
+    reason: 'This sketch expects module imports, which are not directly runnable in this local editor.',
+  },
+];
+
 function getEditorCode() {
-  return editorInstance?.code || '';
+  return editorInstance?.editor?.state?.doc?.toString?.() || editorInstance?.code || '';
 }
 
 function setEditorCode(code) {
   editorInstance?.setCode(code);
+}
+
+function normalizeEditorCode(code) {
+  return String(code || '').replace(/\r\n/g, '\n').trimEnd();
+}
+
+function setLoadedCode(code) {
+  state.loadedCode = normalizeEditorCode(code);
+}
+
+function hasEditorChanges() {
+  return normalizeEditorCode(getEditorCode()) !== normalizeEditorCode(state.loadedCode);
+}
+
+function syncDirtyFromEditor() {
+  const nextDirty = hasEditorChanges();
+  if (state.dirty !== nextDirty) {
+    markDirty(nextDirty);
+  }
+  return nextDirty;
+}
+
+function getLocalPadCodeIssue(code = '') {
+  const source = String(code || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  for (const rule of LOCAL_PAD_UNSUPPORTED_RULES) {
+    if (rule.pattern.test(source)) {
+      return rule.reason;
+    }
+  }
+
+  return '';
+}
+
+function getLoadableExampleIssue(code = '') {
+  const runtimeIssue = getLocalPadCodeIssue(code);
+  if (runtimeIssue) {
+    return runtimeIssue;
+  }
+
+  const source = String(code || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  if (/\bqueryArc\s*\(/u.test(source) || /\bcreateParams?\s*\(/u.test(source)) {
+    return 'This docs snippet explains an API, but it is not a full playable sketch for this local Jester pad.';
+  }
+
+  if (!/\b(?:setcps|stack|n|s)\s*\(/u.test(source)) {
+    return 'This docs snippet is not a full playable sketch for this local Jester pad.';
+  }
+
+  return '';
 }
 
 function replaceEditorCode(code, { cursor = 0 } = {}) {
@@ -312,6 +482,133 @@ function setChatNote(message) {
   elements.chatNote.textContent = message;
 }
 
+function focusChatInput() {
+  elements.chatInput.focus();
+  const length = elements.chatInput.value.length;
+  elements.chatInput.setSelectionRange(length, length);
+}
+
+function setChatInputValue(value, { focus = true } = {}) {
+  elements.chatInput.value = value;
+  if (focus) {
+    focusChatInput();
+  }
+}
+
+function appendPromptChip(chip) {
+  const current = elements.chatInput.value.trim();
+  const nextPrompt = current
+    ? `${current}${/[.!?]$/.test(current) ? '' : '.'} Also, ${chip.append}.`
+    : chip.seed;
+  setChatInputValue(nextPrompt);
+  setStatus(`Added ${chip.label.toLowerCase()} to the prompt.`);
+}
+
+function loadPromptSuggestion(prompt) {
+  setChatInputValue(prompt);
+  setStatus('Loaded a prompt suggestion. Edit it or press Ask.');
+}
+
+function createGuideButton({ label, title = '', className = 'secondary guide-button', onClick }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.textContent = label;
+  if (title) {
+    button.title = title;
+  }
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+function stylePresetLabel(sketch) {
+  return sketch.label.replace(/^Starter:\s*/u, '');
+}
+
+function renderVariationButtons() {
+  elements.chatVariationButtons.innerHTML = '';
+
+  VARIATION_ACTIONS.forEach((action) => {
+    elements.chatVariationButtons.append(
+      createGuideButton({
+        label: action.label,
+        title: action.prompt,
+        onClick: () => {
+          submitChatQuestion({ question: action.prompt, clearInput: false }).catch(handleError);
+        },
+      }),
+    );
+  });
+}
+
+function renderPromptChipButtons() {
+  elements.chatPromptChips.innerHTML = '';
+
+  PROMPT_CHIPS.forEach((chip) => {
+    elements.chatPromptChips.append(
+      createGuideButton({
+        label: chip.label,
+        title: chip.seed,
+        className: 'prompt-chip-button',
+        onClick: () => appendPromptChip(chip),
+      }),
+    );
+  });
+}
+
+function renderStylePresetButtons() {
+  elements.chatStylePresets.innerHTML = '';
+
+  BUILTIN_SKETCHES.filter((sketch) => sketch.category === 'Starter').forEach((sketch) => {
+    elements.chatStylePresets.append(
+      createGuideButton({
+        label: stylePresetLabel(sketch),
+        title: sketch.description,
+        onClick: () => {
+          loadBuiltinSketch(sketch.id).then((loaded) => {
+            if (!loaded) {
+              return;
+            }
+            setChatInputValue('Keep the overall vibe of this sketch, but ');
+            setStatus(`Loaded ${stylePresetLabel(sketch)}. Press Play or ask Jester for a revision.`);
+          }).catch(handleError);
+        },
+      }),
+    );
+  });
+}
+
+function renderPromptSuggestions() {
+  elements.chatPromptSuggestions.innerHTML = '';
+
+  PROMPT_SUGGESTIONS.forEach((suggestion) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary suggestion-card';
+    button.title = suggestion.prompt;
+
+    const title = document.createElement('span');
+    title.className = 'suggestion-title';
+    title.textContent = suggestion.label;
+    button.append(title);
+
+    const description = document.createElement('span');
+    description.className = 'suggestion-description';
+    description.textContent = suggestion.description;
+    button.append(description);
+
+    button.addEventListener('click', () => loadPromptSuggestion(suggestion.prompt));
+    elements.chatPromptSuggestions.append(button);
+  });
+}
+
+function renderGuidedChatControls() {
+  renderVariationButtons();
+  renderPromptChipButtons();
+  renderStylePresetButtons();
+  renderPromptSuggestions();
+}
+
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -338,7 +635,14 @@ function renderChatMessages() {
     content.textContent = message.content;
     article.append(content);
 
-    if (message.code) {
+    if (message.codeIssue) {
+      const runtimeNote = document.createElement('div');
+      runtimeNote.className = 'chat-runtime-note';
+      runtimeNote.textContent = message.codeIssue;
+      article.append(runtimeNote);
+    }
+
+    if (message.code && !message.codeIssue) {
       const actions = document.createElement('div');
       actions.className = 'chat-actions';
 
@@ -613,9 +917,11 @@ async function initializeDocsChat() {
   }
 }
 
-async function submitChatQuestion() {
-  const question = elements.chatInput.value.trim();
-  if (!question) {
+async function submitChatQuestion({ question = null, clearInput = true } = {}) {
+  const nextQuestion = typeof question === 'string' ? question.trim() : elements.chatInput.value.trim();
+  const shouldClearInput = question === null ? true : clearInput;
+  const questionText = nextQuestion.trim();
+  if (!questionText) {
     return;
   }
 
@@ -624,13 +930,16 @@ async function submitChatQuestion() {
     return;
   }
 
+  if (shouldClearInput) {
+    elements.chatInput.value = '';
+  }
+
   pushChatMessage({
     role: 'user',
-    content: question,
+    content: questionText,
     sources: [],
     code: null,
   });
-  elements.chatInput.value = '';
   setChatStatus('Searching docs…');
 
   try {
@@ -664,6 +973,7 @@ async function submitChatQuestion() {
       content: data.answer,
       sources: data.sources || [],
       code: data.code || null,
+      codeIssue: data.codeIssue || '',
       intent: data.intent || 'docs',
       appliable: Boolean(data.appliable),
       appliedLive: '',
@@ -695,6 +1005,15 @@ async function applyChatCodeMessage(
   { playAfterApply = false, focusAfterApply = true, skipConfirm = false, liveApplyLabel = '' } = {},
 ) {
   if (!message?.code) {
+    return;
+  }
+
+  const codeIssue = message.codeIssue || getLoadableExampleIssue(message.code);
+  if (codeIssue) {
+    message.codeIssue = codeIssue;
+    renderChatMessages();
+    setError(codeIssue);
+    setStatus('This example uses features the local Jester pad cannot run.');
     return;
   }
 
@@ -936,7 +1255,8 @@ function renderPresetOptions() {
 }
 
 function confirmDiscard() {
-  return !state.dirty || window.confirm('You have unsaved edits. Discard them?');
+  const dirty = syncDirtyFromEditor();
+  return !dirty || window.confirm('You have unsaved edits. Discard them?');
 }
 
 async function fetchSketchText(path) {
@@ -957,7 +1277,9 @@ async function loadBuiltinSketch(id, { force = false } = {}) {
     return false;
   }
 
-  replaceEditorCode(await fetchSketchText(sketch.path));
+  const code = await fetchSketchText(sketch.path);
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'builtin');
   markDirty(false);
   setError();
@@ -975,7 +1297,9 @@ async function loadLocalSketch(id, { force = false } = {}) {
     return false;
   }
 
-  replaceEditorCode(`${sketch.code.trimEnd()}\n`);
+  const code = `${sketch.code.trimEnd()}\n`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'local');
   markDirty(false);
   setError();
@@ -1024,7 +1348,9 @@ function upsertLocalSketch({ id, label, code, createdAt }) {
 }
 
 function activateLocalSketch(sketch, message) {
-  replaceEditorCode(`${sketch.code.trimEnd()}\n`);
+  const code = `${sketch.code.trimEnd()}\n`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'local');
   markDirty(false);
   setError();
@@ -1346,13 +1672,17 @@ function insertPreset() {
 }
 
 async function playCurrentCode() {
-  if (state.current?.kind === 'builtin' && !state.dirty) {
-    setEditorCode(await fetchSketchText(state.current.path));
-  }
-
+  syncDirtyFromEditor();
   const source = getEditorCode().trim();
   if (!source) {
     setStatus('The editor is empty.');
+    return;
+  }
+
+  const codeIssue = getLocalPadCodeIssue(source);
+  if (codeIssue) {
+    setError(codeIssue);
+    setStatus('This sketch uses features the local Jester pad cannot run.');
     return;
   }
 
@@ -1482,6 +1812,7 @@ function wireEvents() {
 }
 
 async function bootstrap() {
+  renderGuidedChatControls();
   renderPresetOptions();
   renderSketchOptions();
   updateInspector();

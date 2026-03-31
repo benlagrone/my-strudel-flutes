@@ -65,13 +65,16 @@ PORT=8088 docker compose up -d --build
 - This app is static, but playback still depends on internet access because Strudel, soundfonts, and sample banks are fetched from CDNs and GitHub at runtime.
 - `Cmd/Ctrl + Enter` plays the current editor content.
 - `Esc` stops playback.
+- Product/platform notes live in `docs/`, including [`docs/jester-land.md`](docs/jester-land.md).
+- Structure and deploy notes live in [`docs/repo-structure-deploy.md`](docs/repo-structure-deploy.md).
+- Jester 0 planning notes live in [`docs/jester-0-roadmap.md`](docs/jester-0-roadmap.md).
 
 ## Production deploy for Contabo
 
 This repo now includes a production deployment path for `jester.chat` and `jester.land`:
 
-- `deploy/production/compose.yaml`: app + Caddy reverse proxy with TLS
-- `deploy/production/Caddyfile`: HTTPS and redirect rules
+- `deploy/production/compose.yaml`: current production app container, ready to evolve into split `web` + `api` services
+- `deploy/production/Caddyfile`: HTTPS and routing rules for the proxy layer we should add next
 - `deploy/production/.env.example`: production env template
 - `deploy/production/bootstrap-server.sh`: installs Docker + Compose on an Ubuntu/Debian server
 - `deploy/production/prepare-docs.sh`: snapshots the local Strudel docs into `.deploy-docs/` for the RAG corpus
@@ -80,6 +83,7 @@ This repo now includes a production deployment path for `jester.chat` and `jeste
 Recommended DNS:
 
 - `jester.chat` -> `89.117.151.145`
+- `api.jester.land` -> `89.117.151.145`
 - `jester.land` -> `89.117.151.145`
 
 Suggested remote path:
