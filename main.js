@@ -298,6 +298,7 @@ const state = {
   },
   current: null,
   dirty: false,
+  loadedCode: '',
   localSketches: loadLocalSketches(),
 };
 
@@ -305,12 +306,88 @@ let editorInstance = null;
 let audioReady = null;
 let modulesLoading = null;
 
+const LOCAL_PAD_UNSUPPORTED_RULES = [
+  {
+    pattern: /\bloadOrc\s*\(/u,
+    reason: 'This sketch uses `loadOrc()`, which depends on the Csound runtime and is not available in this local Jester pad.',
+  },
+  {
+    pattern: /\bcsound\s*\(/iu,
+    reason: 'This sketch uses Csound-specific helpers that are not available in this local Jester pad.',
+  },
+  {
+    pattern: /^\s*await\b/mu,
+    reason: 'This sketch depends on async setup code, which is not directly runnable in this local editor.',
+  },
+  {
+    pattern: /^\s*import\s.+$/mu,
+    reason: 'This sketch expects module imports, which are not directly runnable in this local editor.',
+  },
+];
+
 function getEditorCode() {
-  return editorInstance?.code || '';
+  return editorInstance?.editor?.state?.doc?.toString?.() || editorInstance?.code || '';
 }
 
 function setEditorCode(code) {
   editorInstance?.setCode(code);
+}
+
+function normalizeEditorCode(code) {
+  return String(code || '').replace(/\r\n/g, '\n').trimEnd();
+}
+
+function setLoadedCode(code) {
+  state.loadedCode = normalizeEditorCode(code);
+}
+
+function hasEditorChanges() {
+  return normalizeEditorCode(getEditorCode()) !== normalizeEditorCode(state.loadedCode);
+}
+
+function syncDirtyFromEditor() {
+  const nextDirty = hasEditorChanges();
+  if (state.dirty !== nextDirty) {
+    markDirty(nextDirty);
+  }
+  return nextDirty;
+}
+
+function getLocalPadCodeIssue(code = '') {
+  const source = String(code || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  for (const rule of LOCAL_PAD_UNSUPPORTED_RULES) {
+    if (rule.pattern.test(source)) {
+      return rule.reason;
+    }
+  }
+
+  return '';
+}
+
+function getLoadableExampleIssue(code = '') {
+  const runtimeIssue = getLocalPadCodeIssue(code);
+  if (runtimeIssue) {
+    return runtimeIssue;
+  }
+
+  const source = String(code || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  if (/\bqueryArc\s*\(/u.test(source) || /\bcreateParams?\s*\(/u.test(source)) {
+    return 'This docs snippet explains an API, but it is not a full playable sketch for this local Jester pad.';
+  }
+
+  if (!/\b(?:setcps|stack|n|s)\s*\(/u.test(source)) {
+    return 'This docs snippet is not a full playable sketch for this local Jester pad.';
+  }
+
+  return '';
 }
 
 function replaceEditorCode(code, { cursor = 0 } = {}) {
@@ -558,7 +635,14 @@ function renderChatMessages() {
     content.textContent = message.content;
     article.append(content);
 
-    if (message.code) {
+    if (message.codeIssue) {
+      const runtimeNote = document.createElement('div');
+      runtimeNote.className = 'chat-runtime-note';
+      runtimeNote.textContent = message.codeIssue;
+      article.append(runtimeNote);
+    }
+
+    if (message.code && !message.codeIssue) {
       const actions = document.createElement('div');
       actions.className = 'chat-actions';
 
@@ -889,6 +973,7 @@ async function submitChatQuestion({ question = null, clearInput = true } = {}) {
       content: data.answer,
       sources: data.sources || [],
       code: data.code || null,
+      codeIssue: data.codeIssue || '',
       intent: data.intent || 'docs',
       appliable: Boolean(data.appliable),
       appliedLive: '',
@@ -920,6 +1005,15 @@ async function applyChatCodeMessage(
   { playAfterApply = false, focusAfterApply = true, skipConfirm = false, liveApplyLabel = '' } = {},
 ) {
   if (!message?.code) {
+    return;
+  }
+
+  const codeIssue = message.codeIssue || getLoadableExampleIssue(message.code);
+  if (codeIssue) {
+    message.codeIssue = codeIssue;
+    renderChatMessages();
+    setError(codeIssue);
+    setStatus('This example uses features the local Jester pad cannot run.');
     return;
   }
 
@@ -1161,7 +1255,8 @@ function renderPresetOptions() {
 }
 
 function confirmDiscard() {
-  return !state.dirty || window.confirm('You have unsaved edits. Discard them?');
+  const dirty = syncDirtyFromEditor();
+  return !dirty || window.confirm('You have unsaved edits. Discard them?');
 }
 
 async function fetchSketchText(path) {
@@ -1182,7 +1277,9 @@ async function loadBuiltinSketch(id, { force = false } = {}) {
     return false;
   }
 
-  replaceEditorCode(await fetchSketchText(sketch.path));
+  const code = await fetchSketchText(sketch.path);
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'builtin');
   markDirty(false);
   setError();
@@ -1200,7 +1297,9 @@ async function loadLocalSketch(id, { force = false } = {}) {
     return false;
   }
 
-  replaceEditorCode(`${sketch.code.trimEnd()}\n`);
+  const code = `${sketch.code.trimEnd()}\n`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'local');
   markDirty(false);
   setError();
@@ -1249,7 +1348,9 @@ function upsertLocalSketch({ id, label, code, createdAt }) {
 }
 
 function activateLocalSketch(sketch, message) {
-  replaceEditorCode(`${sketch.code.trimEnd()}\n`);
+  const code = `${sketch.code.trimEnd()}\n`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, 'local');
   markDirty(false);
   setError();
@@ -1571,13 +1672,17 @@ function insertPreset() {
 }
 
 async function playCurrentCode() {
-  if (state.current?.kind === 'builtin' && !state.dirty) {
-    setEditorCode(await fetchSketchText(state.current.path));
-  }
-
+  syncDirtyFromEditor();
   const source = getEditorCode().trim();
   if (!source) {
     setStatus('The editor is empty.');
+    return;
+  }
+
+  const codeIssue = getLocalPadCodeIssue(source);
+  if (codeIssue) {
+    setError(codeIssue);
+    setStatus('This sketch uses features the local Jester pad cannot run.');
     return;
   }
 

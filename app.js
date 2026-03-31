@@ -61985,16 +61985,80 @@ var state = {
   },
   current: null,
   dirty: false,
+  loadedCode: "",
   localSketches: loadLocalSketches()
 };
 var editorInstance = null;
 var audioReady = null;
 var modulesLoading = null;
+var LOCAL_PAD_UNSUPPORTED_RULES = [
+  {
+    pattern: /\bloadOrc\s*\(/u,
+    reason: "This sketch uses `loadOrc()`, which depends on the Csound runtime and is not available in this local Jester pad."
+  },
+  {
+    pattern: /\bcsound\s*\(/iu,
+    reason: "This sketch uses Csound-specific helpers that are not available in this local Jester pad."
+  },
+  {
+    pattern: /^\s*await\b/mu,
+    reason: "This sketch depends on async setup code, which is not directly runnable in this local editor."
+  },
+  {
+    pattern: /^\s*import\s.+$/mu,
+    reason: "This sketch expects module imports, which are not directly runnable in this local editor."
+  }
+];
 function getEditorCode() {
-  return editorInstance?.code || "";
+  return editorInstance?.editor?.state?.doc?.toString?.() || editorInstance?.code || "";
 }
 function setEditorCode(code) {
   editorInstance?.setCode(code);
+}
+function normalizeEditorCode(code) {
+  return String(code || "").replace(/\r\n/g, "\n").trimEnd();
+}
+function setLoadedCode(code) {
+  state.loadedCode = normalizeEditorCode(code);
+}
+function hasEditorChanges() {
+  return normalizeEditorCode(getEditorCode()) !== normalizeEditorCode(state.loadedCode);
+}
+function syncDirtyFromEditor() {
+  const nextDirty = hasEditorChanges();
+  if (state.dirty !== nextDirty) {
+    markDirty(nextDirty);
+  }
+  return nextDirty;
+}
+function getLocalPadCodeIssue(code = "") {
+  const source = String(code || "").trim();
+  if (!source) {
+    return "";
+  }
+  for (const rule of LOCAL_PAD_UNSUPPORTED_RULES) {
+    if (rule.pattern.test(source)) {
+      return rule.reason;
+    }
+  }
+  return "";
+}
+function getLoadableExampleIssue(code = "") {
+  const runtimeIssue = getLocalPadCodeIssue(code);
+  if (runtimeIssue) {
+    return runtimeIssue;
+  }
+  const source = String(code || "").trim();
+  if (!source) {
+    return "";
+  }
+  if (/\bqueryArc\s*\(/u.test(source) || /\bcreateParams?\s*\(/u.test(source)) {
+    return "This docs snippet explains an API, but it is not a full playable sketch for this local Jester pad.";
+  }
+  if (!/\b(?:setcps|stack|n|s)\s*\(/u.test(source)) {
+    return "This docs snippet is not a full playable sketch for this local Jester pad.";
+  }
+  return "";
 }
 function replaceEditorCode(code, { cursor = 0 } = {}) {
   setEditorCode(code);
@@ -62191,7 +62255,13 @@ function renderChatMessages() {
     content2.className = "chat-content";
     content2.textContent = message.content;
     article.append(content2);
-    if (message.code) {
+    if (message.codeIssue) {
+      const runtimeNote = document.createElement("div");
+      runtimeNote.className = "chat-runtime-note";
+      runtimeNote.textContent = message.codeIssue;
+      article.append(runtimeNote);
+    }
+    if (message.code && !message.codeIssue) {
       const actions = document.createElement("div");
       actions.className = "chat-actions";
       const button = document.createElement("button");
@@ -62460,6 +62530,7 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
       content: data2.answer,
       sources: data2.sources || [],
       code: data2.code || null,
+      codeIssue: data2.codeIssue || "",
       intent: data2.intent || "docs",
       appliable: Boolean(data2.appliable),
       appliedLive: ""
@@ -62487,6 +62558,14 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
 }
 async function applyChatCodeMessage(message, { playAfterApply = false, focusAfterApply = true, skipConfirm = false, liveApplyLabel = "" } = {}) {
   if (!message?.code) {
+    return;
+  }
+  const codeIssue = message.codeIssue || getLoadableExampleIssue(message.code);
+  if (codeIssue) {
+    message.codeIssue = codeIssue;
+    renderChatMessages();
+    setError(codeIssue);
+    setStatus("This example uses features the local Jester pad cannot run.");
     return;
   }
   if (!skipConfirm && !message.appliable) {
@@ -62676,7 +62755,8 @@ function renderPresetOptions() {
   });
 }
 function confirmDiscard() {
-  return !state.dirty || window.confirm("You have unsaved edits. Discard them?");
+  const dirty = syncDirtyFromEditor();
+  return !dirty || window.confirm("You have unsaved edits. Discard them?");
 }
 async function fetchSketchText(path) {
   const response = await fetch(`./${path}?cacheBust=${Date.now()}`, { cache: "no-store" });
@@ -62694,7 +62774,9 @@ async function loadBuiltinSketch(id2, { force = false } = {}) {
   if (!sketch) {
     return false;
   }
-  replaceEditorCode(await fetchSketchText(sketch.path));
+  const code = await fetchSketchText(sketch.path);
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, "builtin");
   markDirty(false);
   setError();
@@ -62709,8 +62791,10 @@ async function loadLocalSketch(id2, { force = false } = {}) {
   if (!sketch) {
     return false;
   }
-  replaceEditorCode(`${sketch.code.trimEnd()}
-`);
+  const code = `${sketch.code.trimEnd()}
+`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
   setError();
@@ -62752,8 +62836,10 @@ function upsertLocalSketch({ id: id2, label, code, createdAt }) {
   return nextSketch;
 }
 function activateLocalSketch(sketch, message) {
-  replaceEditorCode(`${sketch.code.trimEnd()}
-`);
+  const code = `${sketch.code.trimEnd()}
+`;
+  replaceEditorCode(code);
+  setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
   setError();
@@ -63025,12 +63111,16 @@ ${preset.snippet.trim()}
   setStatus(insertedIntoStack ? `Added ${preset.label} as a new layer. Press Play to hear it.` : `Inserted ${preset.label}.`);
 }
 async function playCurrentCode() {
-  if (state.current?.kind === "builtin" && !state.dirty) {
-    setEditorCode(await fetchSketchText(state.current.path));
-  }
+  syncDirtyFromEditor();
   const source = getEditorCode().trim();
   if (!source) {
     setStatus("The editor is empty.");
+    return;
+  }
+  const codeIssue = getLocalPadCodeIssue(source);
+  if (codeIssue) {
+    setError(codeIssue);
+    setStatus("This sketch uses features the local Jester pad cannot run.");
     return;
   }
   setError();

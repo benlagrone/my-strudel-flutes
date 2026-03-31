@@ -9,6 +9,7 @@ import {
   buildConversationQuery,
   buildDocsIndex,
   buildExtractiveAnswer,
+  getLoadableExampleIssue,
   resolveDocsRoot,
   searchDocs,
 } from './docs-rag.mjs';
@@ -409,6 +410,7 @@ async function handleChatRequest(request, response) {
   sendJson(response, 200, {
     answer: answer.answer,
     code: answer.code,
+    codeIssue: answer.codeIssue || (answer.code ? getLoadableExampleIssue(answer.code) : null),
     mode: answer.mode,
     intent,
     appliable: Boolean(answer.code && intent !== 'docs' && !String(answer.mode || '').startsWith('extractive')),

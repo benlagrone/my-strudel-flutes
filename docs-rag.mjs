@@ -38,6 +38,25 @@ const STOP_WORDS = new Set([
   'your',
 ]);
 
+const LOCAL_PAD_UNSUPPORTED_RULES = [
+  {
+    pattern: /\bloadOrc\s*\(/u,
+    reason: 'This example uses `loadOrc()`, which depends on the Csound runtime and is not available in this local Jester pad.',
+  },
+  {
+    pattern: /\bcsound\s*\(/iu,
+    reason: 'This example uses Csound-specific helpers that are not available in this local Jester pad.',
+  },
+  {
+    pattern: /^\s*await\b/mu,
+    reason: 'This example depends on async setup code, which is not directly runnable in this local editor.',
+  },
+  {
+    pattern: /^\s*import\s.+$/mu,
+    reason: 'This example expects module imports, which are not directly runnable in this local editor.',
+  },
+];
+
 export async function resolveDocsRoot(preferredRoot) {
   const candidates = [preferredRoot, resolve(process.cwd(), '../strudel'), '/docs/strudel'].filter(Boolean);
 
@@ -155,14 +174,17 @@ export function buildExtractiveAnswer(query, results) {
     .map((result) => `${result.excerpt} [${result.citation}]`)
     .join('\n\n');
 
-  const code = pickCodeExample(query, results);
-  const answer = code
-    ? `Based on the local Strudel docs, here is the closest guidance:\n\n${summary}\n\nExample:\n\`\`\`strudel\n${code}\n\`\`\``
-    : `Based on the local Strudel docs, here is the closest guidance:\n\n${summary}`;
+  const example = pickCodeExample(query, results);
+  const answer = example.code
+    ? `Based on the local Strudel docs, here is the closest guidance:\n\n${summary}\n\nExample:\n\`\`\`strudel\n${example.code}\n\`\`\``
+    : example.codeIssue
+      ? `Based on the local Strudel docs, here is the closest guidance:\n\n${summary}\n\nNote: ${example.codeIssue} Ask for a local-pad-safe rewrite if you want something runnable in this app.`
+      : `Based on the local Strudel docs, here is the closest guidance:\n\n${summary}`;
 
   return {
     answer,
-    code,
+    code: example.code,
+    codeIssue: example.codeIssue || null,
     mode: 'extractive',
     provider: null,
   };
@@ -258,9 +280,12 @@ async function answerWithOpenAIResponses({ apiKey, model, baseUrl, prompt, syste
     throw new Error('OpenAI response did not include output text.');
   }
 
+  const sanitized = sanitizeAnswerCode(answer);
+
   return {
-    answer,
-    code: extractFirstCodeBlock(answer),
+    answer: sanitized.answer,
+    code: sanitized.code,
+    codeIssue: sanitized.codeIssue,
     mode: 'openai',
     provider: 'openai',
   };
@@ -299,9 +324,12 @@ async function answerWithChatCompletions({ provider, apiKey, model, baseUrl, pro
     throw new Error(`${provider} response did not include output text.`);
   }
 
+  const sanitized = sanitizeAnswerCode(answer);
+
   return {
-    answer,
-    code: extractFirstCodeBlock(answer),
+    answer: sanitized.answer,
+    code: sanitized.code,
+    codeIssue: sanitized.codeIssue,
     mode: provider,
     provider,
   };
@@ -334,7 +362,7 @@ function buildResponseInstructions(query, currentCode = '') {
       'Make the revision immediately loadable into the editor as-is.',
       'Target the simplified local pad used in this app: prefer setcps(...), one top-level stack(...), n(...), s(...), .scale("A4:dorian") style scales, synth voices such as sine, triangle, square, sawtooth, and the crate sample bank.',
       'Prefer local-pad-safe effects and helpers such as .gain(...), .room(...), .delay(...), .lpf(...), .lpq(...), .attack(...), .decay(...), .sustain(...), .release(...), .slow(...), .mask(...), and .resonance(...).',
-      'Do not use gm_ soundfonts, RolandTR909, note(), sound(), voicings(), or other sample banks unless the user explicitly asks for remote samples or a different runtime.',
+      'Never use loadOrc(), await, csound(), imports, gm_ soundfonts, RolandTR909, note(), sound(), voicings(), or other sample banks unless the user explicitly asks for a different runtime and says the code does not need to run in this local pad.',
       'For musical revisions, keep the piece fuller than a tiny snippet: prefer 3 to 6 layers and at least one melodic or rhythmic phrase that spans 16 or more steps or clearly evolves over time.',
       'Use only functions and patterns that are supported by the retrieved docs excerpts. If the docs are insufficient for a requested feature, say so explicitly and stay conservative.',
     ].join(' ');
@@ -348,7 +376,7 @@ function buildResponseInstructions(query, currentCode = '') {
       'Make it fuller than a tiny snippet: prefer setcps(...), one top-level stack(...), 3 to 5 layers, and at least one melodic or rhythmic phrase that spans 16 or more steps or clearly evolves over time.',
       'Target the simplified local pad used in this app: prefer setcps(...), stack(...), n(...), s(...), .scale("A4:dorian") style scales, synth voices such as sine, triangle, square, sawtooth, and the crate sample bank.',
       'Prefer local-pad-safe effects and helpers such as .gain(...), .room(...), .delay(...), .lpf(...), .lpq(...), .attack(...), .decay(...), .sustain(...), .release(...), .slow(...), .mask(...), and .resonance(...).',
-      'Do not use gm_ soundfonts, RolandTR909, note(), sound(), voicings(), or other sample banks unless the user explicitly asks for remote samples or a different runtime.',
+      'Never use loadOrc(), await, csound(), imports, gm_ soundfonts, RolandTR909, note(), sound(), voicings(), or other sample banks unless the user explicitly asks for a different runtime and says the code does not need to run in this local pad.',
       'Use only functions and patterns that are supported by the retrieved docs excerpts. If the docs are insufficient for a requested feature, say so explicitly and stay conservative.',
       'Make the sketch ready to load into the editor as-is.',
     ].join(' ');
@@ -361,6 +389,7 @@ function buildResponseInstructions(query, currentCode = '') {
     'If the docs are insufficient, say so explicitly.',
     'If a Strudel code example would help, include one fenced code block.',
     'When you include code for this local pad, prefer the reliable subset: setcps, stack, n, s, .scale("A4:dorian"), synth voices like sine/triangle/square/sawtooth, and the crate bank.',
+    'Never include loadOrc(), await, csound(), or import-based setup in code for this local pad.',
   ].join(' ');
 }
 
@@ -665,8 +694,23 @@ function makeExcerpt(chunk, queryTerms) {
 
 function pickCodeExample(query, results) {
   const queryWantsCode = /\b(code|example|snippet|pattern|write|play|use)\b/i.test(query);
-  const code = results.flatMap((result) => result.codeBlocks).find(Boolean);
-  return queryWantsCode ? code || null : null;
+  if (!queryWantsCode) {
+    return { code: null, codeIssue: null };
+  }
+
+  const codeBlocks = results.flatMap((result) => result.codeBlocks).filter(Boolean);
+  for (const code of codeBlocks) {
+    const codeIssue = getLoadableExampleIssue(code);
+    if (!codeIssue) {
+      return { code, codeIssue: null };
+    }
+  }
+
+  const firstCode = codeBlocks[0] || null;
+  return {
+    code: null,
+    codeIssue: firstCode ? getLoadableExampleIssue(firstCode) : null,
+  };
 }
 
 function countOccurrences(text, term) {
@@ -684,4 +728,66 @@ function escapeRegExp(value) {
 function extractFirstCodeBlock(text) {
   const match = text.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
   return match ? match[1].trim() : null;
+}
+
+export function getLocalPadCodeIssue(code = '') {
+  const source = String(code || '').trim();
+  if (!source) {
+    return null;
+  }
+
+  for (const rule of LOCAL_PAD_UNSUPPORTED_RULES) {
+    if (rule.pattern.test(source)) {
+      return rule.reason;
+    }
+  }
+
+  return null;
+}
+
+export function getLoadableExampleIssue(code = '') {
+  const runtimeIssue = getLocalPadCodeIssue(code);
+  if (runtimeIssue) {
+    return runtimeIssue;
+  }
+
+  const source = String(code || '').trim();
+  if (!source) {
+    return null;
+  }
+
+  if (/\bqueryArc\s*\(/u.test(source) || /\bcreateParams?\s*\(/u.test(source)) {
+    return 'This docs snippet explains an API, but it is not a full playable sketch for this local Jester pad.';
+  }
+
+  if (!/\b(?:setcps|stack|n|s)\s*\(/u.test(source)) {
+    return 'This docs snippet is not a full playable sketch for this local Jester pad.';
+  }
+
+  return null;
+}
+
+function sanitizeAnswerCode(answer) {
+  const code = extractFirstCodeBlock(answer);
+  const codeIssue = getLoadableExampleIssue(code);
+  if (!codeIssue) {
+    return {
+      answer,
+      code,
+      codeIssue: null,
+    };
+  }
+
+  const strippedAnswer = stripFirstCodeBlock(answer);
+  const note = `Note: ${codeIssue} Ask for a local-pad-safe rewrite if you want something runnable in this app.`;
+
+  return {
+    answer: strippedAnswer ? `${strippedAnswer}\n\n${note}` : note,
+    code: null,
+    codeIssue,
+  };
+}
+
+function stripFirstCodeBlock(text) {
+  return text.replace(/```(?:[a-zA-Z0-9_-]+)?\n[\s\S]*?```/, '').trim();
 }
