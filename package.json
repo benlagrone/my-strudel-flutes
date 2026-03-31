@@ -1,14 +1,24 @@
 {
-    "name": "my-strudel-flutes",
-    "version": "1.0.0",
-    "type": "module",
-    "scripts": {
-        "start": "serve ."
-    },
-    "dependencies": {
-        "@strudel/web": "^1.2.3"
-    },
-    "devDependencies": {
-        "serve": "^14.2.0"
-    }
+  "name": "my-strudel-flutes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npm run build && node server.mjs",
+    "dev": "npm run build && node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@strudel/codemirror": "^1.2.2",
+    "@strudel/core": "^1.2.2",
+    "@strudel/draw": "^1.2.2",
+    "@strudel/mini": "^1.2.2",
+    "@strudel/tonal": "^1.2.2",
+    "@strudel/transpiler": "^1.2.2",
+    "@strudel/webaudio": "^1.2.3",
+    "esbuild": "^0.27.4"
+  }
 }

@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: ../..
+    container_name: jester-app
+    env_file:
+      - ./.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8008
+      STRUDEL_DOCS_ROOT: /docs/strudel
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-18110}:8008"
+    volumes:
+      - ../../.deploy-docs:/docs/strudel:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8008/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

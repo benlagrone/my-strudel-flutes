@@ -51,6 +51,9 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.production
+.deploy-docs/
+deploy/production/.env
 
 # MacOS files
 .DS_Store

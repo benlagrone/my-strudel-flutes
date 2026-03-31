@@ -1,0 +1,19 @@
+services:
+  strudel-pad:
+    build: .
+    container_name: strudel-pad
+    ports:
+      - "${PORT:-8008}:8008"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8008
+      STRUDEL_DOCS_ROOT: /docs/strudel
+      STRUDEL_CHAT_PROVIDER: ${STRUDEL_CHAT_PROVIDER:-}
+      STRUDEL_CHAT_MODEL: ${STRUDEL_CHAT_MODEL:-}
+      STRUDEL_CHAT_BASE_URL: ${STRUDEL_CHAT_BASE_URL:-}
+      STRUDEL_CHAT_API_KEY: ${STRUDEL_CHAT_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    volumes:
+      - ../strudel:/docs/strudel:ro
+    restart: unless-stopped

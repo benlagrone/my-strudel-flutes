@@ -1,35 +1,134 @@
-# The Flutes of Tawantinsuyu
+# My Strudel Flutes
 
-A Strudel composition with Peruvian-style pan flutes and ambient pads.
+A small self-hosted Strudel pad for sketching ambient flute pieces in the browser.
 
-## Setup
+## Local use
+
+Requirements:
+
+- Node.js 18 or newer
+
+Run it locally:
 
 ```bash
-git clone https://github.com/yourname/my-strudel-flutes
 cd my-strudel-flutes
-npm install
 npm start
+```
 
-Then open the served site in your browser (default port 5000).
+Then open [http://localhost:8008](http://localhost:8008).
 
-Workflow
-	•	Edit main.js in VS Code (or any editor).
-	•	Use Live Server or npm start for instant playback.
-	•	Push to GitHub, then in Strudel.cc:
+## App layout
 
-    samples('github:yourname/my-strudel-flutes')
+- `index.html`: browser UI
+- `main.js`: Strudel bootstrapping and editor/playback wiring
+- `songs/`: editable song sketches
+- `server.mjs`: built-in static server for local use or service deployment
 
+## Running on a home server
 
-    ---
+### Option 1: systemd service
 
-### ✅ Next Steps
+Copy the project to the server, for example into `/opt/my-strudel-flutes`, then:
 
-1. Copy these files into your new GitHub repo.
-2. **Open** folder in VS Code.
-3. **Install**: `npm install`
-4. **Run**: `npm start` (or use Live Server)
-5. **Edit** and customize your flutes composition.
-6. **Push** changes to GitHub.
-7. **Import** live via Strudel.cc:  
-   ```js
-   samples('github:yourname/my-strudel-flutes')
+```bash
+cd /opt/my-strudel-flutes
+sudo cp deploy/systemd/my-strudel-flutes.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now my-strudel-flutes
+sudo systemctl status my-strudel-flutes
+```
+
+Notes:
+
+- The example unit uses `User=www-data` and `WorkingDirectory=/opt/my-strudel-flutes`.
+- Adjust those values in `deploy/systemd/my-strudel-flutes.service` before enabling it if your server uses a different user or path.
+- The app listens on port `8008` by default. Change `Environment=PORT=...` in the unit file if needed.
+
+### Option 2: Docker Compose
+
+If your home server already runs Docker:
+
+```bash
+cd my-strudel-flutes
+docker compose up -d --build
+docker compose ps
+```
+
+That publishes the app on port `8008` by default. Override it with:
+
+```bash
+PORT=8088 docker compose up -d --build
+```
+
+## Notes
+
+- This app is static, but playback still depends on internet access because Strudel, soundfonts, and sample banks are fetched from CDNs and GitHub at runtime.
+- `Cmd/Ctrl + Enter` plays the current editor content.
+- `Esc` stops playback.
+- Product/platform notes live in `docs/`, including [`docs/jester-land.md`](docs/jester-land.md).
+- Structure and deploy notes live in [`docs/repo-structure-deploy.md`](docs/repo-structure-deploy.md).
+- Jester 0 planning notes live in [`docs/jester-0-roadmap.md`](docs/jester-0-roadmap.md).
+
+## Production deploy for Contabo
+
+This repo now includes a production deployment path for `jester.chat` and `jester.land`:
+
+- `deploy/production/compose.yaml`: current production app container, ready to evolve into split `web` + `api` services
+- `deploy/production/Caddyfile`: HTTPS and routing rules for the proxy layer we should add next
+- `deploy/production/.env.example`: production env template
+- `deploy/production/bootstrap-server.sh`: installs Docker + Compose on an Ubuntu/Debian server
+- `deploy/production/prepare-docs.sh`: snapshots the local Strudel docs into `.deploy-docs/` for the RAG corpus
+- `deploy/production/deploy-remote.sh`: syncs the app to a remote host and runs the production Compose stack
+
+Recommended DNS:
+
+- `jester.chat` -> `89.117.151.145`
+- `api.jester.land` -> `89.117.151.145`
+- `jester.land` -> `89.117.151.145`
+
+Suggested remote path:
+
+- `/opt/jester-chat`
+
+### 1. Bootstrap the Contabo host
+
+Copy `deploy/production/bootstrap-server.sh` to the server and run it as root or via sudo. It installs Docker, Docker Compose, and opens ports `80` and `443` if `ufw` is present.
+
+### 2. Create the production env on the server
+
+On the server, copy the example:
+
+```bash
+cd /opt/jester-chat
+cp deploy/production/.env.example deploy/production/.env
+```
+
+Then fill in at least:
+
+- `ACME_EMAIL`
+- `DEEPSEEK_API_KEY`
+- optional `OPENAI_API_KEY`
+
+### 3. Deploy from this machine
+
+From the project root:
+
+```bash
+cd my-strudel-flutes
+REMOTE_USER=<your-ssh-user> bash deploy/production/deploy-remote.sh
+```
+
+That script:
+
+- snapshots the local Strudel docs into `.deploy-docs/`
+- rsyncs the app to the remote host
+- runs `docker compose -f deploy/production/compose.yaml up -d --build`
+
+### 4. Validate the deployment
+
+Once DNS has propagated and Caddy has issued certificates:
+
+```bash
+curl https://jester.chat/healthz
+curl https://jester.chat/api/chat/status
+```
