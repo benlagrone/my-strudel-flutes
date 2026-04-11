@@ -311,9 +311,103 @@ Difficulty:
 
 - medium
 
+### Experimental: notation import
+
+#### 12. Sheet Music Import
+
+Goal:
+
+- let users bring simple notated music into Jester and hear it through the
+  existing Strudel playback path
+
+Product rules:
+
+- prefer `MusicXML -> Strudel` as the primary import path because it preserves
+  more notation structure and can produce cleaner, more editable Strudel code
+- allow `MIDI -> Strudel` as a lower-fidelity fallback when playback matters
+  more than readable score structure
+- do not attempt full PDF or scanned sheet-music OCR in `Jester 0`
+- start with monophonic lines and simple polyphony before handling dense piano
+  scores, tuplets, repeats, and multi-staff edge cases
+- make the copyright boundary explicit in product copy: users should only
+  import music they own, have licensed, or know is public domain
+- keep parsing local in the browser when feasible so copyrighted source files
+  do not need to be retained server-side
+
+User value:
+
+- opens a path from traditional notation into the current chat-to-music loop
+- makes Jester more useful to musicians who start from scores instead of text
+  prompts
+- creates a bridge from score playback into editable Strudel code
+
+Difficulty:
+
+- medium to high
+
+Why experimental:
+
+- playback is already solved, but reliable notation import and clean Strudel
+  generation are not
+- the MusicXML path is meaningfully better than MIDI for editability, but it is
+  still non-trivial to map ties, durations, voices, and articulation into
+  usable Strudel
+
+### Experimental: image mood input
+
+#### 13. Image Mood Inference
+
+Goal:
+
+- let the user attach a single image and have Jester infer a mood direction for
+  the music from visible emotional and scene cues
+
+Product rules:
+
+- treat this as mood inference, not clinical emotion detection
+- keep the UI minimal: one image, one preview, one remove action
+- do not add provider/model selection to the UI
+- keep provider choice in server env only
+- use OpenAI for image reading and DeepSeek for music generation
+- do not store images in Jester 0 beyond the immediate request path
+
+Example flow:
+
+1. user attaches one image in chat
+2. Jester reads visible cues such as expression, posture, lighting, and scene
+   energy
+3. Jester converts that into a compact mood summary
+4. Jester uses that summary to revise or generate the current sketch
+5. user hears the result and continues editing normally
+
+User value:
+
+- gives users a faster non-text input path
+- makes Jester feel more responsive to creative context
+- helps users who know the feeling they want but do not know how to describe it
+
+Difficulty:
+
+- medium
+
+Why it fits Jester 0:
+
+- it extends the existing chat-to-music loop instead of creating a new product
+  surface
+- it keeps the music generation core intact while adding a new way to steer it
+- it is easy to position as optional and experimental
+
+Implementation boundary:
+
+- OpenAI image reading only
+- DeepSeek music generation only
+- configuration from `.env`
+- no user provider dropdown
+- no image library, upload manager, or account-level storage
+
 ### Experimental: opt-in camera assist
 
-#### 12. Camera Vibe Assist
+#### 13. Camera Vibe Assist
 
 Goal:
 
@@ -382,7 +476,8 @@ Privacy constraints:
 9. Song States
 10. Part Labels
 11. Export Pack
-12. Camera Vibe Assist
+12. Image Mood Inference
+13. Camera Vibe Assist
 
 ## Suggested Milestones
 

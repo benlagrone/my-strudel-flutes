@@ -277,6 +277,29 @@
       white-space: pre-wrap;
     }
 
+    .error-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: -2px;
+      padding: 0 2px;
+    }
+
+    .error-actions[hidden] {
+      display: none;
+    }
+
+    .error-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .error-button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     .hint {
       margin-top: 16px;
       font-size: 0.95rem;
@@ -375,12 +398,77 @@
       line-height: 1.45;
     }
 
+    .toast-viewport {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 100;
+      display: grid;
+      gap: 10px;
+      width: min(360px, calc(100vw - 24px));
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(31, 27, 24, 0.12);
+      background: rgba(31, 27, 24, 0.92);
+      color: #fffaf3;
+      box-shadow: 0 24px 60px rgba(52, 38, 17, 0.22);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.warning {
+      background: rgba(139, 46, 38, 0.94);
+    }
+
     .chat-sources,
     .chat-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
+    }
+
+    .chat-sources-shell {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.46);
+      overflow: hidden;
+    }
+
+    .chat-sources-shell summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      list-style: none;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+
+    .chat-sources-shell summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .chat-sources-shell[open] summary {
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .chat-sources {
+      padding: 10px 12px 12px;
+      margin-top: 0;
     }
 
     .source-link {
@@ -612,6 +700,12 @@
       .chat-config-row {
         grid-template-columns: 1fr;
       }
+
+      .toast-viewport {
+        right: 10px;
+        bottom: 10px;
+        width: calc(100vw - 20px);
+      }
     }
   </style>
 </head>
@@ -668,6 +762,13 @@
       <div class="editor-pane">
         <div id="code" class="editor-shell" aria-label="Strudel code editor"></div>
         <pre id="error" hidden></pre>
+        <div class="error-actions" id="repair-actions" hidden>
+          <div class="error-note" id="repair-note">Jester can try a local-pad-safe repair for this sketch.</div>
+          <div class="error-button-row">
+            <button class="secondary" id="repair-code" type="button">Fix My Code</button>
+            <button class="secondary" id="repair-code-play" type="button">Fix + Play</button>
+          </div>
+        </div>
         <p class="hint">Shortcuts: <code>Cmd/Ctrl + Enter</code> plays, <code>Cmd/Ctrl + S</code> saves, and <code>Esc</code> stops. Local saves stay in this browser until you export or delete them.</p>
       </div>
       <section class="chat-shell" aria-labelledby="chat-title">
@@ -734,6 +835,7 @@
       </section>
     </section>
   </main>
+  <div class="toast-viewport" id="toast-viewport" aria-live="polite" aria-atomic="true"></div>
   <script type="module" src="app.js"></script>
 </body>
 </html>

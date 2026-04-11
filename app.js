@@ -61962,6 +61962,10 @@ var elements = {
   playButton: document.getElementById("play-song"),
   presetSelect: document.getElementById("preset-select"),
   reloadButton: document.getElementById("reload-sketch"),
+  repairActions: document.getElementById("repair-actions"),
+  repairButton: document.getElementById("repair-code"),
+  repairNote: document.getElementById("repair-note"),
+  repairPlayButton: document.getElementById("repair-code-play"),
   saveButton: document.getElementById("save-sketch"),
   saveCopyButton: document.getElementById("save-copy"),
   select: document.getElementById("sketch-select"),
@@ -61969,7 +61973,8 @@ var elements = {
   sketchMeta: document.getElementById("sketch-meta"),
   sketchTitle: document.getElementById("sketch-title"),
   status: document.getElementById("status"),
-  stopButton: document.getElementById("stop-song")
+  stopButton: document.getElementById("stop-song"),
+  toastViewport: document.getElementById("toast-viewport")
 };
 var state = {
   chat: {
@@ -61986,11 +61991,13 @@ var state = {
   current: null,
   dirty: false,
   loadedCode: "",
-  localSketches: loadLocalSketches()
+  localSketches: loadLocalSketches(),
+  repair: null
 };
 var editorInstance = null;
 var audioReady = null;
 var modulesLoading = null;
+var activeToastTimeout = null;
 var LOCAL_PAD_UNSUPPORTED_RULES = [
   {
     pattern: /\bloadOrc\s*\(/u,
@@ -62060,6 +62067,40 @@ function getLoadableExampleIssue(code = "") {
   }
   return "";
 }
+function buildRepairPrompt({ issue = "", sourceLabel = "current sketch" } = {}) {
+  const details = issue ? `Current problem: ${issue}` : "Current problem: the sketch is broken or not runnable in this local Jester pad.";
+  return [
+    `Repair ${sourceLabel} for the local Jester pad.`,
+    details,
+    "Keep the main musical idea if possible, but prioritize returning one full playable sketch that runs here right now.",
+    'Use only local-pad-safe syntax: setcps, one top-level stack, n, s, .scale("A4:dorian") style scales, sine/triangle/square/sawtooth, the crate bank, and safe effects like gain, room, delay, lpf, lpq, attack, decay, sustain, release, slow, mask, and resonance.',
+    "Remove unsupported helpers or imports if needed.",
+    "Return exactly one full revised sketch."
+  ].join(" ");
+}
+function getRepairTargetCode(message = null) {
+  if (typeof message?.repairCode === "string" && message.repairCode.trim()) {
+    return message.repairCode;
+  }
+  if (message?.codeIssue && typeof message?.code === "string" && message.code.trim()) {
+    return message.code;
+  }
+  return "";
+}
+function setRepairContext(context = null) {
+  const code = String(context?.code || "").trim();
+  if (!code) {
+    state.repair = null;
+    renderRepairActions();
+    return;
+  }
+  state.repair = {
+    code,
+    issue: String(context?.issue || "").trim(),
+    sourceLabel: String(context?.sourceLabel || "this sketch").trim()
+  };
+  renderRepairActions();
+}
 function replaceEditorCode(code, { cursor = 0 } = {}) {
   setEditorCode(code);
   const editorView = editorInstance?.editor;
@@ -62103,8 +62144,9 @@ function initializeCodeEditor() {
     prebake: async () => {
       await Promise.all([modulesLoading, En3(), an2("github:eddyflux/crate")]);
     },
-    onEvalError: handleError,
+    onEvalError: handleCodeEvalError,
     afterEval: () => {
+      setRepairContext(null);
       setError();
       setStatus("Playing. Active mini-notation will highlight in the editor.");
     }
@@ -62129,11 +62171,55 @@ function setError(message = "") {
   elements.errorOutput.hidden = message === "";
   elements.errorOutput.textContent = message;
 }
+function renderRepairActions() {
+  if (!elements.repairActions) {
+    return;
+  }
+  const repair = state.repair;
+  const hasRepair = Boolean(repair?.code);
+  elements.repairActions.hidden = !hasRepair;
+  if (!hasRepair) {
+    if (elements.repairNote) {
+      elements.repairNote.textContent = "Jester can try a local-pad-safe repair for this sketch.";
+    }
+    return;
+  }
+  if (elements.repairNote) {
+    const issueText = repair.issue ? ` Current issue: ${repair.issue}` : "";
+    elements.repairNote.textContent = `Jester can try a local-pad-safe repair for ${repair.sourceLabel}.${issueText}`;
+  }
+}
 function setChatStatus(message) {
   elements.chatStatus.textContent = message;
 }
 function setChatNote(message) {
   elements.chatNote.textContent = message;
+}
+function showToast(message, { tone = "success", duration = 2800 } = {}) {
+  if (!elements.toastViewport || !message) {
+    return;
+  }
+  if (activeToastTimeout) {
+    window.clearTimeout(activeToastTimeout);
+    activeToastTimeout = null;
+  }
+  elements.toastViewport.replaceChildren();
+  const toast = document.createElement("div");
+  toast.className = `toast ${tone}`.trim();
+  toast.textContent = message;
+  elements.toastViewport.append(toast);
+  window.requestAnimationFrame(() => {
+    toast.classList.add("visible");
+  });
+  activeToastTimeout = window.setTimeout(() => {
+    toast.classList.remove("visible");
+    window.setTimeout(() => {
+      if (toast.parentNode === elements.toastViewport) {
+        toast.remove();
+      }
+    }, 180);
+    activeToastTimeout = null;
+  }, duration);
 }
 function focusChatInput() {
   elements.chatInput.focus();
@@ -62145,6 +62231,34 @@ function setChatInputValue(value, { focus = true } = {}) {
   if (focus) {
     focusChatInput();
   }
+}
+function isSongCreateRequest(query) {
+  return /\b(song|sketch|track|piece|compose|composition|full example|full pattern|sample song|write me|make me|generate)\b/i.test(
+    query
+  );
+}
+function isSongEditRequest(query, currentCode = "") {
+  if (!currentCode.trim()) {
+    return false;
+  }
+  return /\b(change|edit|modify|update|revise|rewrite|rework|fix|repair|make it|make the|turn it|turn the|keep|add|remove|swap|replace|simplify|complex|denser|sparser|darker|brighter|longer|shorter|more|less|this song|this sketch|current sketch|current song|same sketch|same song)\b/i.test(
+    query
+  );
+}
+function getSubmitChatStatus(query, currentCode = "") {
+  if (isSongEditRequest(query, currentCode) || isSongCreateRequest(query)) {
+    return "Composing\u2026";
+  }
+  return "Thinking\u2026";
+}
+function getApplyToastMessage({ appliable, playAfterApply, skipConfirm }) {
+  if (!appliable) {
+    return "";
+  }
+  if (skipConfirm) {
+    return playAfterApply ? "Jester updated the song automatically and restarted playback." : "Jester updated the song automatically.";
+  }
+  return playAfterApply ? "Jester updated the song and started playback." : "Jester updated the song.";
 }
 function appendPromptChip(chip) {
   const current2 = elements.chatInput.value.trim();
@@ -62261,6 +62375,7 @@ function renderChatMessages() {
       runtimeNote.textContent = message.codeIssue;
       article.append(runtimeNote);
     }
+    const repairCode = getRepairTargetCode(message);
     if (message.code && !message.codeIssue) {
       const actions = document.createElement("div");
       actions.className = "chat-actions";
@@ -62289,8 +62404,43 @@ function renderChatMessages() {
         actions.append(appliedNote);
       }
       article.append(actions);
+    } else if (message.codeIssue && repairCode) {
+      const actions = document.createElement("div");
+      actions.className = "chat-actions";
+      const button = document.createElement("button");
+      button.className = "secondary";
+      button.type = "button";
+      button.textContent = "Fix For This Pad";
+      button.addEventListener("click", () => {
+        requestCodeRepair({
+          code: repairCode,
+          issue: message.codeIssue,
+          sourceLabel: "this sketch",
+          playAfterApply: false
+        }).catch(handleError);
+      });
+      actions.append(button);
+      const playButton = document.createElement("button");
+      playButton.className = "secondary";
+      playButton.type = "button";
+      playButton.textContent = "Fix + Play";
+      playButton.addEventListener("click", () => {
+        requestCodeRepair({
+          code: repairCode,
+          issue: message.codeIssue,
+          sourceLabel: "this sketch",
+          playAfterApply: true
+        }).catch(handleError);
+      });
+      actions.append(playButton);
+      article.append(actions);
     }
     if (Array.isArray(message.sources) && message.sources.length) {
+      const sourcesShell = document.createElement("details");
+      sourcesShell.className = "chat-sources-shell";
+      const summary = document.createElement("summary");
+      summary.textContent = `References (${message.sources.length})`;
+      sourcesShell.append(summary);
       const sources = document.createElement("div");
       sources.className = "chat-sources";
       message.sources.forEach((source) => {
@@ -62311,7 +62461,8 @@ function renderChatMessages() {
         span.title = source.relativePath;
         sources.append(span);
       });
-      article.append(sources);
+      sourcesShell.append(sources);
+      article.append(sourcesShell);
     }
     elements.chatMessages.append(article);
   });
@@ -62480,7 +62631,15 @@ async function initializeDocsChat() {
     setChatNote("Could not load the local docs index.");
   }
 }
-async function submitChatQuestion({ question: question2 = null, clearInput = true } = {}) {
+async function submitChatQuestion({
+  question: question2 = null,
+  clearInput = true,
+  currentCodeOverride = null,
+  autoApplyOverride = null,
+  autoPlayOverride = null,
+  submitStatus = "",
+  liveApplyLabel = ""
+} = {}) {
   const nextQuestion = typeof question2 === "string" ? question2.trim() : elements.chatInput.value.trim();
   const shouldClearInput = question2 === null ? true : clearInput;
   const questionText = nextQuestion.trim();
@@ -62494,13 +62653,16 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
   if (shouldClearInput) {
     elements.chatInput.value = "";
   }
+  const currentCode = typeof currentCodeOverride === "string" ? currentCodeOverride : getEditorCode();
+  const shouldAutoApply = autoApplyOverride ?? state.chat.autoApply;
+  const shouldAutoPlay = autoPlayOverride ?? state.chat.autoPlay;
   pushChatMessage({
     role: "user",
     content: questionText,
     sources: [],
     code: null
   });
-  setChatStatus("Searching docs\u2026");
+  setChatStatus(submitStatus || getSubmitChatStatus(questionText, currentCode));
   try {
     const response = await fetch("./api/chat", {
       method: "POST",
@@ -62512,7 +62674,7 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
           provider: state.chat.provider,
           model: state.chat.model
         },
-        currentCode: getEditorCode(),
+        currentCode,
         messages: state.chat.messages.map(({ role, content: content2 }) => ({ role, content: content2 }))
       })
     });
@@ -62530,18 +62692,19 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
       content: data2.answer,
       sources: data2.sources || [],
       code: data2.code || null,
+      repairCode: data2.repairCode || null,
       codeIssue: data2.codeIssue || "",
       intent: data2.intent || "docs",
       appliable: Boolean(data2.appliable),
       appliedLive: ""
     };
     pushChatMessage(assistantMessage);
-    if (state.chat.autoApply && assistantMessage.appliable && assistantMessage.code) {
+    if (shouldAutoApply && assistantMessage.appliable && assistantMessage.code) {
       await applyChatCodeMessage(assistantMessage, {
-        playAfterApply: state.chat.autoPlay,
+        playAfterApply: shouldAutoPlay,
         focusAfterApply: false,
         skipConfirm: true,
-        liveApplyLabel: state.chat.autoPlay ? "Applied live and playing" : "Applied live"
+        liveApplyLabel: liveApplyLabel || (shouldAutoPlay ? "Applied live and playing" : "Applied live")
       });
     }
     refreshChatSummary({ fallback: data2.mode === "extractive-fallback" });
@@ -62556,6 +62719,22 @@ async function submitChatQuestion({ question: question2 = null, clearInput = tru
     setChatStatus("There was a problem");
   }
 }
+async function requestCodeRepair({ code = "", issue = "", sourceLabel = "this sketch", playAfterApply = false } = {}) {
+  const source = String(code || "").trim();
+  if (!source) {
+    setStatus("There is no sketch to repair yet.");
+    return;
+  }
+  await submitChatQuestion({
+    question: buildRepairPrompt({ issue, sourceLabel }),
+    clearInput: false,
+    currentCodeOverride: source,
+    autoApplyOverride: true,
+    autoPlayOverride: playAfterApply,
+    submitStatus: "Repairing\u2026",
+    liveApplyLabel: playAfterApply ? "Repaired live and playing" : "Repaired live"
+  });
+}
 async function applyChatCodeMessage(message, { playAfterApply = false, focusAfterApply = true, skipConfirm = false, liveApplyLabel = "" } = {}) {
   if (!message?.code) {
     return;
@@ -62563,6 +62742,11 @@ async function applyChatCodeMessage(message, { playAfterApply = false, focusAfte
   const codeIssue = message.codeIssue || getLoadableExampleIssue(message.code);
   if (codeIssue) {
     message.codeIssue = codeIssue;
+    setRepairContext({
+      code: getRepairTargetCode(message),
+      issue: codeIssue,
+      sourceLabel: "this sketch"
+    });
     renderChatMessages();
     setError(codeIssue);
     setStatus("This example uses features the local Jester pad cannot run.");
@@ -62576,7 +62760,14 @@ async function applyChatCodeMessage(message, { playAfterApply = false, focusAfte
   }
   replaceEditorCode(`${message.code.trimEnd()}
 `);
+  setRepairContext(null);
+  setError();
   markDirty(true);
+  const toastMessage = getApplyToastMessage({
+    appliable: message.appliable,
+    playAfterApply,
+    skipConfirm
+  });
   if (focusAfterApply) {
     focusEditor();
   }
@@ -62587,9 +62778,11 @@ async function applyChatCodeMessage(message, { playAfterApply = false, focusAfte
   if (playAfterApply) {
     setStatus("Applied chat changes. Re-evaluating the song...");
     await playCurrentCode();
+    showToast(toastMessage);
     return;
   }
   setStatus(message.appliable ? "Applied the chat revision to the editor." : "Loaded the chat example into the editor. Press Play to hear it.");
+  showToast(toastMessage);
 }
 function slugify(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "sketch";
@@ -62779,6 +62972,7 @@ async function loadBuiltinSketch(id2, { force = false } = {}) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "builtin");
   markDirty(false);
+  setRepairContext(null);
   setError();
   setStatus(`Loaded ${sketch.label}. Press Play to hear it.`);
   return true;
@@ -62797,6 +62991,7 @@ async function loadLocalSketch(id2, { force = false } = {}) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
+  setRepairContext(null);
   setError();
   setStatus(`Loaded ${sketch.label} from this browser.`);
   return true;
@@ -62842,6 +63037,7 @@ function activateLocalSketch(sketch, message) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
+  setRepairContext(null);
   setError();
   setStatus(message);
 }
@@ -63114,18 +63310,29 @@ async function playCurrentCode() {
   syncDirtyFromEditor();
   const source = getEditorCode().trim();
   if (!source) {
+    setRepairContext(null);
     setStatus("The editor is empty.");
     return;
   }
   const codeIssue = getLocalPadCodeIssue(source);
   if (codeIssue) {
+    setRepairContext({
+      code: source,
+      issue: codeIssue,
+      sourceLabel: "the current sketch"
+    });
     setError(codeIssue);
     setStatus("This sketch uses features the local Jester pad cannot run.");
     return;
   }
+  setRepairContext(null);
   setError();
   setStatus("Evaluating...");
-  await initializeCodeEditor().evaluate();
+  try {
+    await initializeCodeEditor().evaluate();
+  } catch (error) {
+    handleCodeEvalError(error);
+  }
 }
 function stopPlayback() {
   initializeCodeEditor().stop();
@@ -63136,6 +63343,18 @@ function handleError(error) {
   const message = error instanceof Error ? error.message : String(error);
   setError(message);
   setStatus("There was a problem. See the error message below.");
+}
+function handleCodeEvalError(error) {
+  console.error(error);
+  const message = error instanceof Error ? error.message : String(error);
+  const source = getEditorCode().trim();
+  setRepairContext({
+    code: source,
+    issue: message,
+    sourceLabel: "the current sketch"
+  });
+  setError(message);
+  setStatus("The sketch broke during playback. Jester can try to repair it.");
 }
 function wireEvents() {
   elements.select.addEventListener("change", async () => {
@@ -63180,6 +63399,22 @@ function wireEvents() {
   elements.insertPresetButton.addEventListener("click", insertPreset);
   elements.playButton.addEventListener("click", () => {
     playCurrentCode().catch(handleError);
+  });
+  elements.repairButton.addEventListener("click", () => {
+    requestCodeRepair({
+      code: state.repair?.code,
+      issue: state.repair?.issue,
+      sourceLabel: state.repair?.sourceLabel || "the current sketch",
+      playAfterApply: false
+    }).catch(handleError);
+  });
+  elements.repairPlayButton.addEventListener("click", () => {
+    requestCodeRepair({
+      code: state.repair?.code,
+      issue: state.repair?.issue,
+      sourceLabel: state.repair?.sourceLabel || "the current sketch",
+      playAfterApply: true
+    }).catch(handleError);
   });
   elements.stopButton.addEventListener("click", stopPlayback);
   elements.chatForm.addEventListener("submit", (event) => {
@@ -63237,6 +63472,7 @@ function wireEvents() {
 }
 async function bootstrap() {
   renderGuidedChatControls();
+  renderRepairActions();
   renderPresetOptions();
   renderSketchOptions();
   updateInspector();

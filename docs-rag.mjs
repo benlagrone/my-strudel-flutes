@@ -164,6 +164,7 @@ export function buildExtractiveAnswer(query, results) {
     return {
       answer: 'I could not find a close match in the local Strudel docs for that yet. Try naming the feature, function, or concept more directly.',
       code: null,
+      repairCode: null,
       mode: 'extractive',
       provider: null,
     };
@@ -184,6 +185,7 @@ export function buildExtractiveAnswer(query, results) {
   return {
     answer,
     code: example.code,
+    repairCode: example.repairCode || null,
     codeIssue: example.codeIssue || null,
     mode: 'extractive',
     provider: null,
@@ -285,6 +287,7 @@ async function answerWithOpenAIResponses({ apiKey, model, baseUrl, prompt, syste
   return {
     answer: sanitized.answer,
     code: sanitized.code,
+    repairCode: sanitized.repairCode,
     codeIssue: sanitized.codeIssue,
     mode: 'openai',
     provider: 'openai',
@@ -329,6 +332,7 @@ async function answerWithChatCompletions({ provider, apiKey, model, baseUrl, pro
   return {
     answer: sanitized.answer,
     code: sanitized.code,
+    repairCode: sanitized.repairCode,
     codeIssue: sanitized.codeIssue,
     mode: provider,
     provider,
@@ -402,7 +406,7 @@ function isSongEditRequest(query, currentCode = '') {
     return false;
   }
 
-  return /\b(change|edit|modify|update|revise|rewrite|rework|make it|make the|turn it|turn the|keep|add|remove|swap|replace|simplify|complex|denser|sparser|darker|brighter|longer|shorter|more|less|this song|this sketch|current sketch|current song|same sketch|same song)\b/i.test(
+  return /\b(change|edit|modify|update|revise|rewrite|rework|fix|repair|make it|make the|turn it|turn the|keep|add|remove|swap|replace|simplify|complex|denser|sparser|darker|brighter|longer|shorter|more|less|this song|this sketch|current sketch|current song|same sketch|same song)\b/i.test(
     query,
   );
 }
@@ -695,20 +699,21 @@ function makeExcerpt(chunk, queryTerms) {
 function pickCodeExample(query, results) {
   const queryWantsCode = /\b(code|example|snippet|pattern|write|play|use)\b/i.test(query);
   if (!queryWantsCode) {
-    return { code: null, codeIssue: null };
+    return { code: null, repairCode: null, codeIssue: null };
   }
 
   const codeBlocks = results.flatMap((result) => result.codeBlocks).filter(Boolean);
   for (const code of codeBlocks) {
     const codeIssue = getLoadableExampleIssue(code);
     if (!codeIssue) {
-      return { code, codeIssue: null };
+      return { code, repairCode: null, codeIssue: null };
     }
   }
 
   const firstCode = codeBlocks[0] || null;
   return {
     code: null,
+    repairCode: firstCode,
     codeIssue: firstCode ? getLoadableExampleIssue(firstCode) : null,
   };
 }
@@ -774,6 +779,7 @@ function sanitizeAnswerCode(answer) {
     return {
       answer,
       code,
+      repairCode: null,
       codeIssue: null,
     };
   }
@@ -784,6 +790,7 @@ function sanitizeAnswerCode(answer) {
   return {
     answer: strippedAnswer ? `${strippedAnswer}\n\n${note}` : note,
     code: null,
+    repairCode: code,
     codeIssue,
   };
 }

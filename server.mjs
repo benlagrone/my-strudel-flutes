@@ -410,6 +410,7 @@ async function handleChatRequest(request, response) {
   sendJson(response, 200, {
     answer: answer.answer,
     code: answer.code,
+    repairCode: answer.repairCode || null,
     codeIssue: answer.codeIssue || (answer.code ? getLoadableExampleIssue(answer.code) : null),
     mode: answer.mode,
     intent,
