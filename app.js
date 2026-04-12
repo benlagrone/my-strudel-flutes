@@ -61717,18 +61717,42 @@ var BUILTIN_SKETCHES = [
   {
     id: "starter-glass-canopy",
     category: "Starter",
-    label: "Starter: Glass Canopy",
+    label: "Starter: Glass Waltz",
     path: "songs/starter-glass-canopy.js",
-    description: "A slower bell-and-halo sketch that is easy to reshape without breaking anything.",
-    palette: ["sine", "triangle", "sawtooth"]
+    description: "A three-beat bell sketch with a chiming lead, a low step bass, and lots of room for fairytale or noir revisions.",
+    palette: ["sine", "triangle", "square", "bank:crate"]
   },
   {
     id: "starter-river-step",
     category: "Starter",
     label: "Starter: River Step",
     path: "songs/starter-river-step.js",
-    description: "A slightly more rhythmic template with bright synth chords, airy echoes, and a simple beat.",
+    description: "A groove-first template with moving bass, clipped lead motion, and an easy crate rhythm to push around.",
     palette: ["sawtooth", "triangle", "square", "bank:crate"]
+  },
+  {
+    id: "starter-neon-circuit",
+    category: "Starter",
+    label: "Starter: Neon Circuit",
+    path: "songs/starter-neon-circuit.js",
+    description: "A brighter sequencer sketch with square arps, a steady bass motor, and a clean crate pulse.",
+    palette: ["square", "triangle", "sawtooth", "sine", "bank:crate"]
+  },
+  {
+    id: "starter-ember-dub",
+    category: "Starter",
+    label: "Starter: Ember Dub",
+    path: "songs/starter-ember-dub.js",
+    description: "A slower offbeat sketch with echo stabs, subby bass, and roomy percussion for duskier moods.",
+    palette: ["triangle", "sawtooth", "square", "bank:crate"]
+  },
+  {
+    id: "starter-paper-arcade",
+    category: "Starter",
+    label: "Starter: Paper Arcade",
+    path: "songs/starter-paper-arcade.js",
+    description: "A playful chip-like loop with quick square runs, buoyant bass, and a small bright beat.",
+    palette: ["square", "triangle", "sine", "bank:crate"]
   },
   {
     id: "tawantinsuyu",
@@ -61765,8 +61789,8 @@ var BUILTIN_SKETCHES = [
 ];
 var PRESET_SNIPPETS = [
   {
-    id: "pan-flute-lead",
-    label: "Pan Flute Lead",
+    id: "air-reed-lead",
+    label: "Air Reed Lead",
     snippet: `n("[0 2 4 ~] ~ <5 7>")
   .scale("A4:dorian")
   .s("triangle")
@@ -61781,34 +61805,62 @@ var PRESET_SNIPPETS = [
   .slow(2)`
   },
   {
-    id: "halo-pad",
-    label: "Halo Pad",
-    snippet: `n("<0 3 5 6>")
-  .scale("A3:minor")
+    id: "dub-chord-stab",
+    label: "Dub Chord Stab",
+    snippet: `n("~ 0 ~ 5")
+  .scale("F4:dorian")
   .s("sawtooth")
-  .lpf(900)
-  .lpq(3)
-  .attack(0.02)
-  .decay(0.75)
-  .sustain(0)
-  .release(0.08)
-  .room(0.38)
-  .gain(0.28)
-  .slow(2)`
-  },
-  {
-    id: "music-box-sparkles",
-    label: "Music Box Sparkles",
-    snippet: `n("~ <7 9> ~ <11>")
-  .scale("C6:major")
-  .s("sine")
+  .lpf(1200)
   .attack(0.01)
   .decay(0.16)
   .sustain(0)
-  .release(0.04)
-  .room(0.5)
+  .release(0.08)
+  .room(0.38)
+  .delay("<.25 .375>")
   .gain(0.22)
-  .slow(4)`
+  .slow(2)`
+  },
+  {
+    id: "square-runner-arp",
+    label: "Square Runner Arp",
+    snippet: `n("[0 7 10 7] [3 10 12 10]")
+  .scale("E5:minor")
+  .s("square")
+  .attack(0.01)
+  .decay(0.11)
+  .sustain(0)
+  .release(0.03)
+  .gain(0.18)
+  .fast(2)`
+  },
+  {
+    id: "toybox-bells",
+    label: "Toybox Bells",
+    snippet: `n("[0 ~ 4] [7 ~ 9]")
+  .scale("C6:major")
+  .s("sine")
+  .attack(0.01)
+  .decay(0.18)
+  .sustain(0)
+  .release(0.05)
+  .room(0.44)
+  .gain(0.16)
+  .slow(2)`
+  },
+  {
+    id: "lantern-drone",
+    label: "Lantern Drone",
+    snippet: `n("<0 5 7 5>")
+  .scale("G3:dorian")
+  .s("sawtooth")
+  .lpf(850)
+  .attack(0.03)
+  .decay(0.72)
+  .sustain(0)
+  .release(0.12)
+  .room(0.42)
+  .gain(0.2)
+  .slow(2)`
   },
   {
     id: "bottle-echo",
@@ -61827,6 +61879,19 @@ var PRESET_SNIPPETS = [
   .slow(4)`
   },
   {
+    id: "rubber-bass",
+    label: "Rubber Bass",
+    snippet: `n("0 ~ 0 5")
+  .scale("C2:minor")
+  .s("triangle")
+  .lpf(650)
+  .attack(0.01)
+  .decay(0.22)
+  .sustain(0)
+  .release(0.05)
+  .gain(0.18)`
+  },
+  {
     id: "crate-pulse",
     label: "Crate Pulse",
     snippet: `s("bd")
@@ -61836,18 +61901,28 @@ var PRESET_SNIPPETS = [
   .delay(0.04)`
   },
   {
-    id: "soft-saw-bass",
-    label: "Soft Saw Bass",
-    snippet: `n("0 ~ 0 2")
-  .scale("A2:minor")
-  .s("sawtooth")
-  .lpf(900)
+    id: "rim-shuffle",
+    label: "Rim Shuffle",
+    snippet: `stack(
+  s("rim").struct("~ x ~ ~"),
+  s("hh").struct("~ ~ x x")
+)
+  .bank("crate")
+  .gain(0.12)`
+  },
+  {
+    id: "glass-counterline",
+    label: "Glass Counterline",
+    snippet: `n("~ 7 ~ 9")
+  .scale("C6:major")
+  .s("sine")
   .attack(0.01)
-  .decay(0.3)
+  .decay(0.08)
   .sustain(0)
-  .release(0.06)
+  .release(0.03)
+  .room(0.24)
   .gain(0.22)
-  .slow(2)`
+  .fast(2)`
   }
 ];
 var VARIATION_ACTIONS = [
@@ -61936,7 +62011,37 @@ var PROMPT_SUGGESTIONS = [
     prompt: "Keep the current harmony, remove clutter, and then add a gentle sense of motion in the later bars. Return a full revised sketch."
   }
 ];
+var MOOD_AXES = [
+  {
+    id: "energy",
+    label: "Energy",
+    options: [
+      { value: -1, label: "Calmer", summary: "calmer", prompt: "calmer, softer, and more spacious" },
+      { value: 0, label: "Balanced", summary: "balanced", prompt: "" },
+      { value: 1, label: "More Intense", summary: "more intense", prompt: "more intense and more propulsive" }
+    ]
+  },
+  {
+    id: "tone",
+    label: "Tone",
+    options: [
+      { value: -1, label: "Darker", summary: "darker", prompt: "darker and warmer" },
+      { value: 0, label: "Balanced", summary: "balanced", prompt: "" },
+      { value: 1, label: "Brighter", summary: "brighter", prompt: "brighter and more open" }
+    ]
+  },
+  {
+    id: "density",
+    label: "Density",
+    options: [
+      { value: -1, label: "Sparser", summary: "sparser", prompt: "sparser and less busy" },
+      { value: 0, label: "Balanced", summary: "balanced", prompt: "" },
+      { value: 1, label: "Busier", summary: "busier", prompt: "busier and more layered" }
+    ]
+  }
+];
 var elements = {
+  applyMoodButton: document.getElementById("apply-mood"),
   chatAutoApply: document.getElementById("chat-auto-apply"),
   chatAutoPlay: document.getElementById("chat-auto-play"),
   chatForm: document.getElementById("chat-form"),
@@ -61951,6 +62056,21 @@ var elements = {
   chatStylePresets: document.getElementById("chat-style-presets"),
   chatVariationButtons: document.getElementById("chat-variation-buttons"),
   clearChatButton: document.getElementById("clear-chat"),
+  compareClearButton: document.getElementById("compare-clear"),
+  compareLabelA: document.getElementById("compare-label-a"),
+  compareLabelB: document.getElementById("compare-label-b"),
+  compareLoadAButton: document.getElementById("compare-load-a"),
+  compareLoadBButton: document.getElementById("compare-load-b"),
+  compareNoteA: document.getElementById("compare-note-a"),
+  compareNoteB: document.getElementById("compare-note-b"),
+  comparePanel: document.getElementById("compare-panel"),
+  comparePlayAButton: document.getElementById("compare-play-a"),
+  comparePlayBButton: document.getElementById("compare-play-b"),
+  compareSideA: document.getElementById("compare-side-a"),
+  compareSideB: document.getElementById("compare-side-b"),
+  compareSource: document.getElementById("compare-source"),
+  compareStatus: document.getElementById("compare-status"),
+  compareSummary: document.getElementById("compare-summary"),
   codeEditor: document.getElementById("code"),
   deleteButton: document.getElementById("delete-sketch"),
   errorOutput: document.getElementById("error"),
@@ -61958,6 +62078,8 @@ var elements = {
   importButton: document.getElementById("import-sketch"),
   importFile: document.getElementById("import-file"),
   insertPresetButton: document.getElementById("insert-preset"),
+  moodControls: document.getElementById("mood-controls"),
+  moodSummary: document.getElementById("mood-summary"),
   paletteTags: document.getElementById("palette-tags"),
   playButton: document.getElementById("play-song"),
   presetSelect: document.getElementById("preset-select"),
@@ -61974,7 +62096,8 @@ var elements = {
   sketchTitle: document.getElementById("sketch-title"),
   status: document.getElementById("status"),
   stopButton: document.getElementById("stop-song"),
-  toastViewport: document.getElementById("toast-viewport")
+  toastViewport: document.getElementById("toast-viewport"),
+  resetMoodButton: document.getElementById("reset-mood")
 };
 var state = {
   chat: {
@@ -61984,11 +62107,13 @@ var state = {
     messages: [],
     model: "",
     mode: "loading",
+    mood: createDefaultMoodState(),
     provider: "extractive",
     providers: [],
     ready: false
   },
   current: null,
+  compare: null,
   dirty: false,
   loadedCode: "",
   localSketches: loadLocalSketches(),
@@ -62100,6 +62225,149 @@ function setRepairContext(context = null) {
     sourceLabel: String(context?.sourceLabel || "this sketch").trim()
   };
   renderRepairActions();
+}
+function summarizeComparePrompt(prompt2 = "") {
+  const source = String(prompt2 || "").trim();
+  if (!source) {
+    return "Latest AI song revision is armed for quick A/B playback.";
+  }
+  const compact = source.replace(/\s+/g, " ");
+  return compact.length > 140 ? `${compact.slice(0, 137)}...` : compact;
+}
+function getCompareSide(side) {
+  if (!state.compare) {
+    return null;
+  }
+  if (side === "a") {
+    return {
+      code: state.compare.baseCode,
+      label: state.compare.baseLabel
+    };
+  }
+  if (side === "b") {
+    return {
+      code: state.compare.candidateCode,
+      label: state.compare.candidateLabel
+    };
+  }
+  return null;
+}
+function getCompareMatch() {
+  if (!state.compare) {
+    return "";
+  }
+  const current2 = normalizeEditorCode(getEditorCode());
+  if (!current2) {
+    return "";
+  }
+  if (current2 === normalizeEditorCode(state.compare.baseCode)) {
+    return "a";
+  }
+  if (current2 === normalizeEditorCode(state.compare.candidateCode)) {
+    return "b";
+  }
+  return "custom";
+}
+function renderComparePanel() {
+  if (!elements.comparePanel) {
+    return;
+  }
+  const compare2 = state.compare;
+  const hasCompare = Boolean(compare2?.baseCode && compare2?.candidateCode);
+  elements.comparePanel.hidden = !hasCompare;
+  if (!hasCompare) {
+    return;
+  }
+  const match = getCompareMatch();
+  const hasCustomEdits = match === "custom";
+  elements.compareLabelA.textContent = compare2.baseLabel;
+  elements.compareLabelB.textContent = compare2.candidateLabel;
+  elements.compareSummary.textContent = summarizeComparePrompt(compare2.prompt);
+  elements.compareSource.textContent = compare2.sourceLabel || "Latest AI song revision is armed for quick A/B playback.";
+  elements.compareSideA.classList.toggle("active", match === "a");
+  elements.compareSideB.classList.toggle("active", match === "b");
+  elements.compareNoteA.textContent = match === "a" ? "Loaded now" : hasCustomEdits ? "Available" : "Ready";
+  elements.compareNoteB.textContent = match === "b" ? "Loaded now" : hasCustomEdits ? "Available" : "Ready";
+  if (match === "a") {
+    elements.compareStatus.textContent = "Current editor matches A.";
+  } else if (match === "b") {
+    elements.compareStatus.textContent = "Current editor matches B.";
+  } else if (match === "custom") {
+    elements.compareStatus.textContent = "Current editor has drifted from the compare pair.";
+  } else {
+    elements.compareStatus.textContent = "Compare is ready.";
+  }
+}
+function setCompareSession(session = null) {
+  const baseCode = normalizeEditorCode(session?.baseCode || "");
+  const candidateCode = normalizeEditorCode(session?.candidateCode || "");
+  if (!baseCode || !candidateCode || baseCode === candidateCode) {
+    state.compare = null;
+    renderComparePanel();
+    return;
+  }
+  state.compare = {
+    baseCode,
+    baseLabel: String(session?.baseLabel || "A \xB7 Previous sketch").trim(),
+    candidateCode,
+    candidateLabel: String(session?.candidateLabel || "B \xB7 Jester revision").trim(),
+    prompt: String(session?.prompt || "").trim(),
+    sourceLabel: String(session?.sourceLabel || "Latest AI song revision is armed for quick A/B playback.").trim()
+  };
+  renderComparePanel();
+}
+function setCompareSessionFromMessage(message) {
+  if (!message?.appliable || !message?.code || !message?.compareBaseCode) {
+    return false;
+  }
+  setCompareSession({
+    baseCode: message.compareBaseCode,
+    baseLabel: message.compareBaseLabel || "A \xB7 Previous sketch",
+    candidateCode: message.code,
+    candidateLabel: message.compareCandidateLabel || "B \xB7 Jester revision",
+    prompt: message.comparePrompt || "",
+    sourceLabel: "Latest AI song revision is armed for quick A/B playback."
+  });
+  return Boolean(state.compare);
+}
+function confirmCompareSwap(targetLabel) {
+  const compare2 = state.compare;
+  if (!compare2) {
+    return false;
+  }
+  const current2 = normalizeEditorCode(getEditorCode());
+  if (!current2) {
+    return true;
+  }
+  const matchesKnownSide = current2 === normalizeEditorCode(compare2.baseCode) || current2 === normalizeEditorCode(compare2.candidateCode);
+  if (matchesKnownSide) {
+    return true;
+  }
+  return window.confirm(`The editor has edits outside the current compare pair. Replace them with ${targetLabel}?`);
+}
+async function loadCompareSide(side, { playAfterLoad = false } = {}) {
+  const snapshot = getCompareSide(side);
+  if (!snapshot?.code) {
+    setStatus("No compare snapshot is ready yet.");
+    return;
+  }
+  if (!confirmCompareSwap(snapshot.label)) {
+    return;
+  }
+  replaceEditorCode(`${snapshot.code.trimEnd()}
+`);
+  setRepairContext(null);
+  setError();
+  syncDirtyFromEditor();
+  renderComparePanel();
+  if (playAfterLoad) {
+    setStatus(`Loaded ${snapshot.label}. Re-evaluating...`);
+    await playCurrentCode();
+    showToast(`Playing ${snapshot.label}.`);
+    return;
+  }
+  setStatus(`Loaded ${snapshot.label}. Press Play to hear it.`);
+  showToast(`Loaded ${snapshot.label}.`);
 }
 function replaceEditorCode(code, { cursor = 0 } = {}) {
   setEditorCode(code);
@@ -62232,6 +62500,137 @@ function setChatInputValue(value, { focus = true } = {}) {
     focusChatInput();
   }
 }
+function normalizeMoodValue(value) {
+  return value === -1 || value === 1 ? value : 0;
+}
+function createDefaultMoodState() {
+  return {
+    density: 0,
+    energy: 0,
+    tone: 0
+  };
+}
+function hydrateMoodState(candidate = null) {
+  const next = createDefaultMoodState();
+  if (!candidate || typeof candidate !== "object") {
+    return next;
+  }
+  MOOD_AXES.forEach((axis) => {
+    next[axis.id] = normalizeMoodValue(candidate[axis.id]);
+  });
+  return next;
+}
+function joinHumanList(items) {
+  const values = items.filter(Boolean);
+  if (!values.length) {
+    return "";
+  }
+  if (values.length === 1) {
+    return values[0];
+  }
+  if (values.length === 2) {
+    return `${values[0]} and ${values[1]}`;
+  }
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
+}
+function getMoodAxis(axisId) {
+  return MOOD_AXES.find((axis) => axis.id === axisId) || null;
+}
+function getMoodOption(axisId, value) {
+  const axis = getMoodAxis(axisId);
+  if (!axis) {
+    return null;
+  }
+  return axis.options.find((option) => option.value === normalizeMoodValue(value)) || axis.options[1] || null;
+}
+function getActiveMoodSelections() {
+  return MOOD_AXES.map((axis) => ({ axis, option: getMoodOption(axis.id, state.chat.mood[axis.id]) })).filter(({ option }) => option && option.value !== 0);
+}
+function getMoodSummaryText() {
+  const active = getActiveMoodSelections();
+  if (!active.length) {
+    return "Balanced";
+  }
+  return joinHumanList(active.map(({ option }) => option.summary));
+}
+function buildMoodPromptClause() {
+  const active = getActiveMoodSelections();
+  if (!active.length) {
+    return "";
+  }
+  return joinHumanList(active.map(({ option }) => option.prompt));
+}
+function hasActiveMoodControls() {
+  return getActiveMoodSelections().length > 0;
+}
+function buildMoodPromptSuffix() {
+  const clause = buildMoodPromptClause();
+  if (!clause) {
+    return "";
+  }
+  return `Honor these direct mood controls: make the music ${clause}.`;
+}
+function buildMoodOnlyQuestion(currentCode = "") {
+  const clause = buildMoodPromptClause();
+  if (!clause) {
+    return "";
+  }
+  if (String(currentCode || "").trim()) {
+    return `Keep the current song recognizable, but make it ${clause}. Return a full revised sketch.`;
+  }
+  return `Write one full playable sketch that feels ${clause}. Return exactly one complete sketch.`;
+}
+function resolvePromptWithMoodControls({ question: question2 = "", currentCode = "", forceMoodOnly = false } = {}) {
+  const trimmedQuestion = String(question2 || "").trim();
+  const moodActive = hasActiveMoodControls();
+  const appliesToSong = moodActive && (isSongEditRequest(trimmedQuestion, currentCode) || isSongCreateRequest(trimmedQuestion));
+  if (forceMoodOnly) {
+    const effectiveQuestion = buildMoodOnlyQuestion(currentCode);
+    return {
+      displayQuestion: String(currentCode || "").trim() ? `Apply mood controls to the current song.
+
+Mood controls: ${getMoodSummaryText()}.` : `Make a new song from the current mood controls.
+
+Mood controls: ${getMoodSummaryText()}.`,
+      effectiveQuestion,
+      moodApplied: Boolean(effectiveQuestion)
+    };
+  }
+  if (!appliesToSong) {
+    return {
+      displayQuestion: trimmedQuestion,
+      effectiveQuestion: trimmedQuestion,
+      moodApplied: false
+    };
+  }
+  const suffix = buildMoodPromptSuffix();
+  return {
+    displayQuestion: `${trimmedQuestion}
+
+Mood controls: ${getMoodSummaryText()}.`,
+    effectiveQuestion: `${trimmedQuestion}${/[.!?]$/.test(trimmedQuestion) ? "" : "."} ${suffix}`.trim(),
+    moodApplied: true
+  };
+}
+function setMoodAxis(axisId, nextValue, { persist = true } = {}) {
+  if (!Object.hasOwn(state.chat.mood, axisId)) {
+    return;
+  }
+  state.chat.mood[axisId] = normalizeMoodValue(nextValue);
+  renderMoodControls();
+  refreshChatSummary();
+  if (persist) {
+    persistChatConfig();
+  }
+}
+function resetMoodControls({ persist = true } = {}) {
+  state.chat.mood = createDefaultMoodState();
+  renderMoodControls();
+  refreshChatSummary();
+  if (persist) {
+    persistChatConfig();
+  }
+}
 function isSongCreateRequest(query) {
   return /\b(song|sketch|track|piece|compose|composition|full example|full pattern|sample song|write me|make me|generate)\b/i.test(
     query
@@ -62350,7 +62749,39 @@ function renderPromptSuggestions() {
     elements.chatPromptSuggestions.append(button);
   });
 }
+function renderMoodControls() {
+  elements.moodControls.innerHTML = "";
+  MOOD_AXES.forEach((axis) => {
+    const row = document.createElement("div");
+    row.className = "mood-axis";
+    const label = document.createElement("div");
+    label.className = "mood-axis-label";
+    label.textContent = axis.label;
+    row.append(label);
+    const options = document.createElement("div");
+    options.className = "mood-axis-options";
+    axis.options.forEach((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `secondary mood-option ${state.chat.mood[axis.id] === option.value ? "active" : ""}`.trim();
+      button.textContent = option.label;
+      button.setAttribute("aria-pressed", state.chat.mood[axis.id] === option.value ? "true" : "false");
+      button.addEventListener("click", () => {
+        const currentValue = state.chat.mood[axis.id];
+        const nextValue = currentValue === option.value && option.value !== 0 ? 0 : option.value;
+        setMoodAxis(axis.id, nextValue);
+        setStatus(`Mood controls: ${getMoodSummaryText()}.`);
+      });
+      options.append(button);
+    });
+    row.append(options);
+    elements.moodControls.append(row);
+  });
+  const active = getActiveMoodSelections();
+  elements.moodSummary.textContent = active.length ? `Active mood: ${joinHumanList(active.map(({ option }) => option.summary))}. Ask normally, or apply the current mood directly.` : "Balanced. Ask normally, or apply the current mood directly.";
+}
 function renderGuidedChatControls() {
+  renderMoodControls();
   renderVariationButtons();
   renderPromptChipButtons();
   renderStylePresetButtons();
@@ -62396,6 +62827,19 @@ function renderChatMessages() {
           applyChatCodeMessage(message, { playAfterApply: true, focusAfterApply: true }).catch(handleError);
         });
         actions.append(playButton);
+        if (message.compareBaseCode) {
+          const compareButton = document.createElement("button");
+          compareButton.className = "secondary";
+          compareButton.type = "button";
+          compareButton.textContent = "Compare A/B";
+          compareButton.addEventListener("click", () => {
+            if (setCompareSessionFromMessage(message)) {
+              setStatus("Live Compare is ready. Load or play A and B from the compare tray.");
+              showToast("Live Compare is ready for this revision.");
+            }
+          });
+          actions.append(compareButton);
+        }
       }
       if (message.appliedLive) {
         const appliedNote = document.createElement("span");
@@ -62476,7 +62920,7 @@ function clearChat() {
   state.chat.messages = [
     {
       role: "assistant",
-      content: 'Ask me about Strudel features, syntax, samples, effects, scheduling, or ask me to revise the current song live. For example: "Keep the bass, make the melody darker, and add a drifting pad."',
+      content: 'Ask me about Strudel features, syntax, samples, effects, scheduling, or ask me to revise the current song live. You can also steer revisions with the mood controls and press Apply Mood. For example: "Keep the bass, make the melody darker, and add a drifting pad."',
       sources: [],
       code: null
     }
@@ -62503,7 +62947,8 @@ function persistChatConfig() {
       provider: state.chat.provider,
       model: state.chat.model,
       autoApply: state.chat.autoApply,
-      autoPlay: state.chat.autoPlay
+      autoPlay: state.chat.autoPlay,
+      mood: state.chat.mood
     })
   );
 }
@@ -62569,20 +63014,20 @@ function refreshChatSummary({ fallback = false } = {}) {
   if (!provider || state.chat.provider === "extractive" || !provider.llmEnabled) {
     setChatStatus("Docs ready");
     setChatNote(
-      `Grounded in ${state.chat.fileCount} local docs files. Using local extractive answers only. The current editor code is still sent with each question.`
+      `Grounded in ${state.chat.fileCount} local docs files. Using local extractive answers only. The current editor code is still sent with each question.${hasActiveMoodControls() ? ` Mood controls live: ${getMoodSummaryText()}.` : ""}`
     );
     return;
   }
   if (fallback) {
     setChatStatus("Docs fallback");
     setChatNote(
-      `Grounded in ${state.chat.fileCount} local docs files. ${providerLabel} failed for that answer, so the app fell back to local extractive mode.`
+      `Grounded in ${state.chat.fileCount} local docs files. ${providerLabel} failed for that answer, so the app fell back to local extractive mode.${hasActiveMoodControls() ? ` Mood controls live: ${getMoodSummaryText()}.` : ""}`
     );
     return;
   }
   setChatStatus(`Docs + ${providerLabel} ready`);
   setChatNote(
-    `Grounded in ${state.chat.fileCount} local docs files. Using ${providerLabel}${state.chat.model ? ` (${state.chat.model})` : ""} for synthesized answers. The current editor code is included with each question.${state.chat.autoApply ? " Song revisions apply live to the editor." : ""}${state.chat.autoPlay ? " Auto-play is on." : ""}`
+    `Grounded in ${state.chat.fileCount} local docs files. Using ${providerLabel}${state.chat.model ? ` (${state.chat.model})` : ""} for synthesized answers. The current editor code is included with each question.${state.chat.autoApply ? " Song revisions apply live to the editor." : ""}${state.chat.autoPlay ? " Auto-play is on." : ""}${hasActiveMoodControls() ? ` Mood controls live: ${getMoodSummaryText()}.` : ""}`
   );
 }
 function applyChatConfig(providerId, requestedModel = "", { persist = true } = {}) {
@@ -62619,8 +63064,10 @@ async function initializeDocsChat() {
     const storedConfig = loadStoredChatConfig();
     state.chat.autoApply = storedConfig?.autoApply ?? true;
     state.chat.autoPlay = storedConfig?.autoPlay ?? false;
+    state.chat.mood = hydrateMoodState(storedConfig?.mood);
     elements.chatAutoApply.checked = state.chat.autoApply;
     elements.chatAutoPlay.checked = state.chat.autoPlay;
+    renderMoodControls();
     const initialProvider = storedConfig?.provider || data2.provider || "extractive";
     const initialModel = storedConfig?.model || data2.model || "";
     applyChatConfig(initialProvider, initialModel, { persist: false });
@@ -62637,13 +63084,22 @@ async function submitChatQuestion({
   currentCodeOverride = null,
   autoApplyOverride = null,
   autoPlayOverride = null,
+  forceMoodOnly = false,
   submitStatus = "",
   liveApplyLabel = ""
 } = {}) {
   const nextQuestion = typeof question2 === "string" ? question2.trim() : elements.chatInput.value.trim();
   const shouldClearInput = question2 === null ? true : clearInput;
-  const questionText = nextQuestion.trim();
-  if (!questionText) {
+  const currentCode = typeof currentCodeOverride === "string" ? currentCodeOverride : getEditorCode();
+  const promptContext = resolvePromptWithMoodControls({
+    question: nextQuestion,
+    currentCode,
+    forceMoodOnly
+  });
+  const questionText = promptContext.displayQuestion.trim();
+  const effectiveQuestion = promptContext.effectiveQuestion.trim();
+  if (!effectiveQuestion) {
+    setStatus(forceMoodOnly ? "Set at least one non-balanced mood first." : "Ask a question first.");
     return;
   }
   if (!state.chat.ready) {
@@ -62653,16 +63109,15 @@ async function submitChatQuestion({
   if (shouldClearInput) {
     elements.chatInput.value = "";
   }
-  const currentCode = typeof currentCodeOverride === "string" ? currentCodeOverride : getEditorCode();
   const shouldAutoApply = autoApplyOverride ?? state.chat.autoApply;
   const shouldAutoPlay = autoPlayOverride ?? state.chat.autoPlay;
   pushChatMessage({
     role: "user",
-    content: questionText,
+    content: questionText || effectiveQuestion,
     sources: [],
     code: null
   });
-  setChatStatus(submitStatus || getSubmitChatStatus(questionText, currentCode));
+  setChatStatus(submitStatus || getSubmitChatStatus(effectiveQuestion, currentCode));
   try {
     const response = await fetch("./api/chat", {
       method: "POST",
@@ -62675,7 +63130,13 @@ async function submitChatQuestion({
           model: state.chat.model
         },
         currentCode,
-        messages: state.chat.messages.map(({ role, content: content2 }) => ({ role, content: content2 }))
+        messages: [
+          ...state.chat.messages.slice(0, -1).map(({ role, content: content2 }) => ({ role, content: content2 })),
+          {
+            role: "user",
+            content: effectiveQuestion
+          }
+        ]
       })
     });
     if (!response.ok) {
@@ -62692,6 +63153,10 @@ async function submitChatQuestion({
       content: data2.answer,
       sources: data2.sources || [],
       code: data2.code || null,
+      compareBaseCode: currentCode || null,
+      compareBaseLabel: "A \xB7 Previous sketch",
+      compareCandidateLabel: "B \xB7 Jester revision",
+      comparePrompt: effectiveQuestion,
       repairCode: data2.repairCode || null,
       codeIssue: data2.codeIssue || "",
       intent: data2.intent || "docs",
@@ -62699,6 +63164,9 @@ async function submitChatQuestion({
       appliedLive: ""
     };
     pushChatMessage(assistantMessage);
+    if (assistantMessage.appliable && assistantMessage.code && assistantMessage.compareBaseCode) {
+      setCompareSessionFromMessage(assistantMessage);
+    }
     if (shouldAutoApply && assistantMessage.appliable && assistantMessage.code) {
       await applyChatCodeMessage(assistantMessage, {
         playAfterApply: shouldAutoPlay,
@@ -62718,6 +63186,20 @@ async function submitChatQuestion({
     });
     setChatStatus("There was a problem");
   }
+}
+async function applyCurrentMoodControls() {
+  if (!hasActiveMoodControls()) {
+    setStatus("Set at least one mood away from balanced first.");
+    return;
+  }
+  const currentCode = getEditorCode();
+  await submitChatQuestion({
+    question: "",
+    clearInput: false,
+    currentCodeOverride: currentCode,
+    forceMoodOnly: true,
+    submitStatus: String(currentCode || "").trim() ? "Shaping mood\u2026" : "Composing from mood\u2026"
+  });
 }
 async function requestCodeRepair({ code = "", issue = "", sourceLabel = "this sketch", playAfterApply = false } = {}) {
   const source = String(code || "").trim();
@@ -62758,11 +63240,15 @@ async function applyChatCodeMessage(message, { playAfterApply = false, focusAfte
       return;
     }
   }
+  if (message.appliable && message.compareBaseCode) {
+    setCompareSessionFromMessage(message);
+  }
   replaceEditorCode(`${message.code.trimEnd()}
 `);
   setRepairContext(null);
   setError();
   markDirty(true);
+  renderComparePanel();
   const toastMessage = getApplyToastMessage({
     appliable: message.appliable,
     playAfterApply,
@@ -62868,10 +63354,12 @@ function setCurrentSketch(sketch, kind) {
   renderSketchOptions();
   elements.select.value = selectionValue;
   updateInspector();
+  renderComparePanel();
 }
 function markDirty(isDirty) {
   state.dirty = isDirty;
   updateInspector();
+  renderComparePanel();
 }
 function renderChipRow(container, items, extraClass = "") {
   container.innerHTML = "";
@@ -62972,6 +63460,7 @@ async function loadBuiltinSketch(id2, { force = false } = {}) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "builtin");
   markDirty(false);
+  setCompareSession(null);
   setRepairContext(null);
   setError();
   setStatus(`Loaded ${sketch.label}. Press Play to hear it.`);
@@ -62991,6 +63480,7 @@ async function loadLocalSketch(id2, { force = false } = {}) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
+  setCompareSession(null);
   setRepairContext(null);
   setError();
   setStatus(`Loaded ${sketch.label} from this browser.`);
@@ -63037,6 +63527,7 @@ function activateLocalSketch(sketch, message) {
   setLoadedCode(code);
   setCurrentSketch(sketch, "local");
   markDirty(false);
+  setCompareSession(null);
   setRepairContext(null);
   setError();
   setStatus(message);
@@ -63416,6 +63907,29 @@ function wireEvents() {
       playAfterApply: true
     }).catch(handleError);
   });
+  elements.applyMoodButton.addEventListener("click", () => {
+    applyCurrentMoodControls().catch(handleError);
+  });
+  elements.resetMoodButton.addEventListener("click", () => {
+    resetMoodControls();
+    setStatus("Reset mood controls to balanced.");
+  });
+  elements.compareLoadAButton.addEventListener("click", () => {
+    loadCompareSide("a", { playAfterLoad: false }).catch(handleError);
+  });
+  elements.comparePlayAButton.addEventListener("click", () => {
+    loadCompareSide("a", { playAfterLoad: true }).catch(handleError);
+  });
+  elements.compareLoadBButton.addEventListener("click", () => {
+    loadCompareSide("b", { playAfterLoad: false }).catch(handleError);
+  });
+  elements.comparePlayBButton.addEventListener("click", () => {
+    loadCompareSide("b", { playAfterLoad: true }).catch(handleError);
+  });
+  elements.compareClearButton.addEventListener("click", () => {
+    setCompareSession(null);
+    setStatus("Cleared the compare pair.");
+  });
   elements.stopButton.addEventListener("click", stopPlayback);
   elements.chatForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -63472,6 +63986,7 @@ function wireEvents() {
 }
 async function bootstrap() {
   renderGuidedChatControls();
+  renderComparePanel();
   renderRepairActions();
   renderPresetOptions();
   renderSketchOptions();

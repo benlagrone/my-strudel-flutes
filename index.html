@@ -300,6 +300,97 @@
       gap: 10px;
     }
 
+    .compare-panel {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .compare-panel[hidden] {
+      display: none;
+    }
+
+    .compare-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .compare-title {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.1;
+    }
+
+    .compare-status {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    .compare-summary {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .compare-side {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .compare-side.active {
+      border-color: rgba(30, 107, 92, 0.42);
+      background: rgba(30, 107, 92, 0.08);
+    }
+
+    .compare-side-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .compare-side-label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .compare-side-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .compare-side-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .compare-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
     .hint {
       margin-top: 16px;
       font-size: 0.95rem;
@@ -544,6 +635,74 @@
       gap: 8px;
     }
 
+    .mood-section {
+      display: grid;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .mood-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mood-axis {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .mood-axis-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .mood-axis-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mood-option {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .mood-option.active {
+      color: #fffaf3;
+      background: var(--accent);
+      border-color: rgba(30, 107, 92, 0.7);
+    }
+
+    .mood-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .mood-summary {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .mood-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .chat-guide-heading {
       font-size: 0.76rem;
       letter-spacing: 0.08em;
@@ -692,12 +851,18 @@
       }
 
       .chat-header,
-      .chat-actions-row {
+      .chat-actions-row,
+      .compare-header,
+      .compare-footer {
         flex-direction: column;
         align-items: stretch;
       }
 
       .chat-config-row {
+        grid-template-columns: 1fr;
+      }
+
+      .compare-grid {
         grid-template-columns: 1fr;
       }
 
@@ -769,6 +934,42 @@
             <button class="secondary" id="repair-code-play" type="button">Fix + Play</button>
           </div>
         </div>
+        <section class="compare-panel" id="compare-panel" aria-labelledby="compare-title" hidden>
+          <div class="compare-header">
+            <div>
+              <div class="eyebrow">Live Compare</div>
+              <h2 class="compare-title" id="compare-title">A/B the last AI revision</h2>
+            </div>
+            <div class="compare-status" id="compare-status">Waiting for a song revision.</div>
+          </div>
+          <div class="compare-summary" id="compare-summary">Jester will keep the previous sketch and the latest AI revision ready for quick A/B playback.</div>
+          <div class="compare-grid">
+            <article class="compare-side" id="compare-side-a">
+              <div class="compare-side-head">
+                <div class="compare-side-label" id="compare-label-a">A · Previous sketch</div>
+                <div class="compare-side-note" id="compare-note-a">Not loaded</div>
+              </div>
+              <div class="compare-side-actions">
+                <button class="secondary" id="compare-load-a" type="button">Load A</button>
+                <button class="secondary" id="compare-play-a" type="button">Play A</button>
+              </div>
+            </article>
+            <article class="compare-side" id="compare-side-b">
+              <div class="compare-side-head">
+                <div class="compare-side-label" id="compare-label-b">B · Jester revision</div>
+                <div class="compare-side-note" id="compare-note-b">Not loaded</div>
+              </div>
+              <div class="compare-side-actions">
+                <button class="secondary" id="compare-load-b" type="button">Load B</button>
+                <button class="secondary" id="compare-play-b" type="button">Play B</button>
+              </div>
+            </article>
+          </div>
+          <div class="compare-footer">
+            <div id="compare-source">Compare stays armed for the latest AI song revision.</div>
+            <button class="secondary" id="compare-clear" type="button">Clear Compare</button>
+          </div>
+        </section>
         <p class="hint">Shortcuts: <code>Cmd/Ctrl + Enter</code> plays, <code>Cmd/Ctrl + S</code> saves, and <code>Esc</code> stops. Local saves stay in this browser until you export or delete them.</p>
       </div>
       <section class="chat-shell" aria-labelledby="chat-title">
@@ -785,6 +986,19 @@
             Ask about the current song, or ask for a new full sketch
             <textarea class="chat-input" id="chat-input" placeholder="Keep the current bass and drums, but make the melody darker, longer, and more dramatic."></textarea>
           </label>
+          <div class="chat-guide-group">
+            <div class="chat-guide-heading">Mood controls</div>
+            <section class="mood-section" aria-labelledby="mood-summary">
+              <div class="mood-grid" id="mood-controls"></div>
+              <div class="mood-footer">
+                <div class="mood-summary" id="mood-summary">Balanced. Ask normally, or apply the current mood directly.</div>
+                <div class="mood-actions">
+                  <button class="secondary" id="reset-mood" type="button">Reset Mood</button>
+                  <button class="secondary" id="apply-mood" type="button">Apply Mood</button>
+                </div>
+              </div>
+            </section>
+          </div>
           <div class="chat-guide-group">
             <div class="chat-guide-heading">One-click variations</div>
             <div class="guide-button-row" id="chat-variation-buttons"></div>
